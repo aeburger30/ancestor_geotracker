@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ancestor GeoTracker | Family Migration & Proximity Mapper</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }
+    #map { height: 100%; width: 100%; z-index: 1; }
+    
+    /* Custom glowing marker for ancestors */
+    .ancestor-pin {
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+      transition: transform 0.2s ease;
+    }
+    .ancestor-pin:hover {
+      transform: scale(1.25);
+    }
+    .proximity-pulse {
+      animation: pulse-ring 1.6s infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.9); }
+      70% { box-shadow: 0 0 0 14px rgba(250, 204, 21, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 flex flex-col h-screen">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 z-20 shadow-md">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🧭</span>
+      <div>
+        <h1 class="font-bold text-lg leading-tight text-amber-400 tracking-wide">Ancestor GeoTracker</h1>
+        <p class="text-xs text-slate-400">Historical Migration, Route & Proximity GIS</p>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <div id="syncStatus" class="px-2.5 py-1 rounded bg-slate-700 text-slate-300 font-medium flex items-center gap-1.5">
+        <span id="syncDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span id="syncText">Local Storage Mode</span>
+      </div>
+
+      <button onclick="exportJSON()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded font-medium transition" title="Download backup JSON">
+        ⬇ Export JSON
+      </button>
+      <label class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded font-medium cursor-pointer transition" title="Import backup JSON">
+        ⬆ Import JSON
+        <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)" />
+      </label>
+      <label class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-3 py-1.5 rounded cursor-pointer transition" title="Import standard GEDCOM (.ged) family tree">
+        📜 Import GEDCOM
+        <input type="file" id="importGedcomFile" accept=".ged,.gedcom" class="hidden" onchange="importGEDCOM(event)" />
+      </label>
+      <button onclick="exportKML()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded font-medium transition" title="Export paths and timestamps to Google Earth">
+        🌍 Google Earth (.KML)
+      </button>
+      <button onclick="toggleModal('cloudModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded font-medium transition">
+        ☁️ Cloud Sync Setup
+      </button>
+      <button onclick="resetDemoData()" class="bg-slate-700 hover:bg-rose-800/80 text-slate-300 hover:text-white px-2.5 py-1.5 rounded font-medium transition" title="Restore starter demo data">
+        ↺ Demo
+      </button>
+    </div>
+  </header>
+
+  <!-- GEDCOM GEOCODING PROGRESS BANNER -->
+  <div id="gedcomProgressBanner" class="hidden bg-amber-500/20 border-b border-amber-500/40 px-4 py-1.5 text-xs flex items-center justify-between z-20">
+    <div class="flex items-center gap-2">
+      <span class="animate-spin">⏳</span>
+      <span id="gedcomProgressText" class="text-amber-300 font-medium">Geocoding imported places...</span>
+    </div>
+    <button onclick="cancelGedcomGeocoding()" class="text-slate-300 hover:text-white underline text-[11px]">Stop Geocoding</button>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- LEFT SIDEBAR: Controls, Add Ancestor, Proximity Radar -->
+    <aside class="w-96 bg-slate-800 border-r border-slate-700 flex flex-col z-10 overflow-y-auto">
+      
+      <!-- Tabs -->
+      <div class="grid grid-cols-3 border-b border-slate-700 text-xs font-semibold bg-slate-850 shrink-0">
+        <button onclick="switchTab('radar')" id="tabBtn-radar" class="py-2.5 border-b-2 border-amber-400 text-amber-400">
+          📡 GeoRadar
+        </button>
+        <button onclick="switchTab('person')" id="tabBtn-person" class="py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          👤 + Ancestor
+        </button>
+        <button onclick="switchTab('event')" id="tabBtn-event" class="py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+          📍 + Waypoint
+        </button>
+      </div>
+
+      <!-- TAB 1: PROXIMITY RADAR & ACTIVE ROSTER -->
+      <div id="tab-radar" class="p-4 space-y-4 flex-1">
+        <!-- Proximity Radar Box -->
+        <div class="bg-slate-900/90 border border-amber-500/40 rounded-lg p-3 shadow-inner">
+          <div class="flex items-center justify-between mb-1.5">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              ⚡ Proximity GeoRadar
+            </h2>
+            <div class="flex items-center gap-1 text-xs text-slate-400">
+              <span>Within</span>
+              <input type="number" id="proximityRadius" value="35" min="5" max="500" onchange="updateMapForYear()"
+                class="w-14 bg-slate-800 border border-slate-600 rounded px-1.5 py-0.5 text-center text-amber-300 font-bold" />
+              <span>mi</span>
+            </div>
+          </div>
+          <div id="proximityAlerts" class="text-xs space-y-1.5 text-slate-300 max-h-40 overflow-y-auto">
+            <!-- Populated dynamically -->
+          </div>
+          <div class="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center">
+            <button onclick="scanAllTimelineConvergences()" class="text-[11px] text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
+              🔎 Scan Full Timeline for Convergences
+            </button>
+            <span id="scanResultBadge" class="text-[10px] text-slate-400"></span>
+          </div>
+          <div id="allConvergencesDrawer" class="hidden mt-2 pt-2 border-t border-slate-800 max-h-44 overflow-y-auto space-y-1 text-[11px]">
+            <!-- Populated when scanning full timeline -->
+          </div>
+        </div>
+
+        <!-- Layer Toggles & Basemap -->
+        <div class="bg-slate-700/40 rounded-lg p-3 space-y-2 text-xs">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-semibold text-slate-300">GeoTracker Layers</span>
+            <button onclick="fitAllMarkers()" class="text-[11px] text-sky-400 hover:text-sky-300 font-medium">🗺️ Fit All Trails</button>
+          </div>
+          <label class="flex items-center justify-between cursor-pointer">
+            <span>Interpolate In-Between Years</span>
+            <input type="checkbox" id="toggleGhost" checked onchange="updateMapForYear()" class="accent-amber-400" />
+          </label>
+          <label class="flex items-center justify-between cursor-pointer">
+            <span>Show Spousal / Parent Links</span>
+            <input type="checkbox" id="toggleRelLines" checked onchange="updateMapForYear()" class="accent-amber-400" />
+          </label>
+          <label class="flex items-center justify-between cursor-pointer">
+            <span>Show Future Migration Trails</span>
+            <input type="checkbox" id="toggleFuturePaths" checked onchange="updateMapForYear()" class="accent-amber-400" />
+          </label>
+          <div class="pt-1 flex items-center justify-between">
+            <span class="text-slate-400">Map Style:</span>
+            <select id="basemapSelect" onchange="changeBasemap(this.value)" class="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-[11px] text-slate-200">
+              <option value="voyager">Carto Voyager (Historical Clean)</option>
+              <option value="topo">Topographic / Physical Relief</option>
+              <option value="satellite">Satellite World Imagery</option>
+              <option value="dark">Dark Matter GIS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search & Filter Roster -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tracked Ancestors</h3>
+            <span id="activeCount" class="text-xs text-amber-400 font-medium"></span>
+          </div>
+
+          <div class="flex gap-1.5 text-xs">
+            <input type="text" id="rosterSearch" oninput="updateMapForYear()" placeholder="🔍 Search name, place, FS ID..."
+              class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-slate-200 placeholder-slate-500" />
+            <select id="branchFilter" onchange="updateMapForYear()" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-300 max-w-[115px]">
+              <option value="">All Lines</option>
+              <option value="#38bdf8">Sky Blue</option>
+              <option value="#f43f5e">Rose Red</option>
+              <option value="#34d399">Emerald</option>
+              <option value="#a855f7">Purple</option>
+              <option value="#fb923c">Orange</option>
+            </select>
+          </div>
+
+          <div id="ancestorRoster" class="space-y-2">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ADD / EDIT PERSON & RELATIONSHIP -->
+      <div id="tab-person" class="p-4 space-y-4 hidden">
+        <div class="flex items-center justify-between">
+          <h2 id="personFormTitle" class="text-sm font-bold text-amber-400">Add Tracked Ancestor</h2>
+          <button type="button" id="cancelPersonEditBtn" onclick="resetPersonForm()" class="hidden text-xs text-slate-400 hover:text-white underline">
+            Cancel Edit
+          </button>
+        </div>
+        <form id="personForm" onsubmit="savePersonForm(event)" class="space-y-3 text-xs">
+          <input type="hidden" id="editPersonId" value="" />
+          <div>
+            <label class="block text-slate-300 mb-1">Full Name *</label>
+            <input type="text" id="pName" required placeholder="e.g., Hannah Elizabeth Abbott"
+              class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5 text-slate-100" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 mb-1">FamilySearch ID</label>
+              <input type="text" id="pFsId" placeholder="e.g., KWJ1-XYZ"
+                class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5 text-slate-100" />
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">Lineage Color</label>
+              <select id="pBranch" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-slate-100">
+                <option value="#38bdf8">Paternal - Line A (Sky Blue)</option>
+                <option value="#f43f5e">Paternal - Line B (Rose Red)</option>
+                <option value="#34d399">Maternal - Line A (Emerald)</option>
+                <option value="#a855f7">Maternal - Line B (Purple)</option>
+                <option value="#fb923c">Direct / Pioneer (Orange)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 mb-1">Birth Year *</label>
+              <input type="number" id="pBirth" required placeholder="1812"
+                class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5 text-slate-100" />
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">Death Year *</label>
+              <input type="number" id="pDeath" required placeholder="1889"
+                class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5 text-slate-100" />
+            </div>
+          </div>
+
+          <hr class="border-slate-700 my-2" />
+          <div class="font-semibold text-slate-300">Link Relationship (Optional)</div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-400 mb-1">Relationship Type</label>
+              <select id="pRelType" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5">
+                <option value="">None / Keep Existing</option>
+                <option value="spouse">Spouse of</option>
+                <option value="parent">Parent of</option>
+                <option value="child">Child of</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Related Ancestor</label>
+              <select id="pRelTarget" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="personSubmitBtn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2 rounded transition">
+            + Save Ancestor to GeoTracker
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB 3: ADD / EDIT TIME & PLACE EVENT -->
+      <div id="tab-event" class="p-4 space-y-3 hidden">
+        <div class="flex items-center justify-between">
+          <h2 id="eventFormTitle" class="text-sm font-bold text-amber-400">Add Time & Place Waypoint</h2>
+          <button type="button" id="cancelEventEditBtn" onclick="resetEventForm()" class="hidden text-xs text-slate-400 hover:text-white underline">
+            Cancel Edit
+          </button>
+        </div>
+        <form id="eventForm" onsubmit="saveEventForm(event)" class="space-y-3 text-xs">
+          <input type="hidden" id="editEventId" value="" />
+          <div>
+            <label class="block text-slate-300 mb-1">Select Ancestor *</label>
+            <select id="ePersonId" required class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5"></select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 mb-1">Event Type *</label>
+              <select id="eType" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5">
+                <option value="Birth">Birth</option>
+                <option value="Christening">Christening</option>
+                <option value="Residence / Census">Residence / Census</option>
+                <option value="Emigration / Departure">Emigration / Departure</option>
+                <option value="Arrival">Immigration / Arrival</option>
+                <option value="Marriage">Marriage</option>
+                <option value="Land Deed / Homestead">Land Deed / Homestead</option>
+                <option value="Military Service">Military Service</option>
+                <option value="Death / Burial">Death / Burial</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">Year *</label>
+              <input type="number" id="eYear" required placeholder="1846"
+                class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5" />
+            </div>
+          </div>
+
+          <!-- Place Search with Free OpenStreetMap Nominatim Geocoder -->
+          <div>
+            <label class="block text-slate-300 mb-1">Place Name (Town, County, State/Country) *</label>
+            <div class="flex gap-1.5">
+              <input type="text" id="ePlace" required placeholder="e.g., Nauvoo, Hancock, Illinois"
+                class="flex-1 bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5" />
+              <button type="button" onclick="lookupCoordinates()" id="geoBtn"
+                class="bg-sky-600 hover:bg-sky-500 text-white px-2.5 py-1.5 rounded font-semibold shrink-0">
+                🔍 Geocode
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Tip: Click anywhere on the map to auto-fill coordinates, or click Geocode.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 mb-1">Latitude *</label>
+              <input type="number" step="any" id="eLat" required placeholder="40.5500"
+                class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5" />
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1">Longitude *</label>
+              <input type="number" step="any" id="eLng" required placeholder="-91.3850"
+                class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 mb-1">Mode of Transport to Here (Optional Override)</label>
+            <select id="eTransport" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5">
+              <option value="Auto">✨ Auto-Estimate by Year & Distance</option>
+              <option value="Sailing Packet Ship">⛵ Sailing Packet Ship (Ocean)</option>
+              <option value="Transatlantic Steamship">🚢 Transatlantic Steamship</option>
+              <option value="Canal Packet Boat">🛶 Canal Packet Boat (Erie / Inland)</option>
+              <option value="River Steamboat">⛴️ River Steamboat (Mississippi/Ohio)</option>
+              <option value="Ox Wagon / Handcart">🐂 Ox Wagon / Pioneer Trail</option>
+              <option value="Stagecoach / Turnpike">🐎 Stagecoach / Horseback</option>
+              <option value="Early Steam Railroad">🚂 Steam Railroad</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 mb-1">Historical / Source Notes</label>
+            <textarea id="eNotes" rows="2" placeholder="e.g., Traveled with parent's family; listed on 1850 Census."
+              class="w-full bg-slate-900 border border-slate-600 rounded px-2.5 py-1.5"></textarea>
+          </div>
+
+          <button type="submit" id="eventSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded transition">
+            📍 Plot Waypoint on Map
+          </button>
+        </form>
+      </div>
+
+    </aside>
+
+    <!-- MAP CONTAINER -->
+    <main class="flex-1 relative">
+      <div id="map"></div>
+
+      <!-- FLOATING JOURNEY INSPECTOR CARD (Bottom Right) -->
+      <div id="journeyCard" class="hidden absolute bottom-6 right-6 w-80 bg-slate-900/95 border border-amber-500/60 rounded-xl p-4 shadow-2xl z-[500] text-xs">
+        <div class="flex justify-between items-start mb-2">
+          <span id="jcBadge" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">Route Telemetry</span>
+          <button onclick="document.getElementById('journeyCard').classList.add('hidden')" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <h3 id="jcTitle" class="font-bold text-sm text-white mb-1"></h3>
+        <p id="jcLocations" class="text-slate-300 mb-2"></p>
+        <div class="bg-slate-800 rounded p-2.5 space-y-1 border border-slate-700">
+          <div class="flex justify-between"><span class="text-slate-400">Distance:</span> <span id="jcDist" class="font-semibold text-white"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Likely Transport:</span> <span id="jcMode" class="font-semibold text-amber-400"></span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Est. Travel Time:</span> <span id="jcTime" class="font-semibold text-emerald-400"></span></div>
+        </div>
+        <p id="jcContext" class="mt-2.5 text-slate-300 italic leading-relaxed"></p>
+      </div>
+    </main>
+  </div>
+
+  <!-- BOTTOM TIME SLIDER BAR -->
+  <footer class="bg-slate-800 border-t border-slate-700 px-6 py-3 z-20 flex items-center gap-4">
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button onclick="stepYear(-1)" title="Previous Year" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-2 rounded-lg text-xs font-bold transition">
+        ◀
+      </button>
+      <button id="playBtn" onclick="togglePlay()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-1.5 shrink-0 transition">
+        ▶ Play
+      </button>
+      <button onclick="stepYear(1)" title="Next Year" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-2 rounded-lg text-xs font-bold transition">
+        ▶
+      </button>
+      <select id="playSpeed" onchange="updatePlaySpeed()" title="Playback speed" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-2 text-xs text-slate-300">
+        <option value="650">0.5x</option>
+        <option value="400" selected>1x</option>
+        <option value="180">2x</option>
+        <option value="80">5x</option>
+      </select>
+    </div>
+
+    <div class="text-center shrink-0 w-24">
+      <div class="text-[10px] uppercase tracking-wider text-slate-400">GeoTracker Year</div>
+      <div id="yearDisplay" class="text-2xl font-black text-amber-400 leading-none">1838</div>
+    </div>
+
+    <div class="flex-1 flex flex-col">
+      <input type="range" id="yearSlider" min="1750" max="1950" value="1838" oninput="onSliderInput(this.value)"
+        class="w-full accent-amber-400 cursor-pointer h-2 bg-slate-700 rounded-lg" />
+      <div class="flex justify-between text-[10px] text-slate-400 mt-1 px-1">
+        <span id="minYearLabel">1750</span>
+        <span>Scrub timeline to track ancestral movement & proximity (Click any route line for telemetry)</span>
+        <span id="maxYearLabel">1950</span>
+      </div>
+    </div>
+
+    <!-- Year Range Adjusters -->
+    <div class="hidden md:flex items-center gap-2 text-xs text-slate-400">
+      <label>Range:</label>
+      <input type="number" id="sliderMinInput" value="1750" onchange="updateSliderBounds()" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-center text-slate-200" />
+      <span>to</span>
+      <input type="number" id="sliderMaxInput" value="1950" onchange="updateSliderBounds()" class="w-16 bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-center text-slate-200" />
+    </div>
+  </footer>
+
+  <!-- FIREBASE CLOUD SETUP MODAL -->
+  <div id="cloudModal" class="hidden fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-xl max-w-lg w-full p-6 space-y-4 text-xs">
+      <div class="flex justify-between items-center">
+        <h2 class="text-base font-bold text-amber-400">☁️ Ancestor GeoTracker Cloud Sync</h2>
+        <button onclick="toggleModal('cloudModal')" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+      <p class="text-slate-300 leading-relaxed">
+        By default, your changes save automatically in your browser's <strong>Local Storage</strong>. To sync automatically across every computer, tablet, and phone on GitHub Pages, paste your free <strong>Firebase Realtime Database URL</strong> below:
+      </p>
+      <div>
+        <label class="block text-slate-300 mb-1 font-semibold">Firebase Realtime Database URL</label>
+        <input type="url" id="fbDbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com"
+          class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-slate-100" />
+      </div>
+      <div>
+        <label class="block text-slate-300 mb-1 font-semibold">Dataset Key (Shared Family Name)</label>
+        <input type="text" id="fbRoomKey" value="ancestor_geotracker_main"
+          class="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-slate-100" />
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="disconnectCloud()" class="bg-rose-800/70 hover:bg-rose-700 text-white px-3 py-2 rounded">Use Local Only</button>
+        <button onclick="saveCloudConfig()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-4 py-2 rounded">Save & Sync Now</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. STARTER DEMO DATA (Shows how two separate branches converge in 1837-1846)
+    // =========================================================================
+    const DEFAULT_DATA = {
+      persons: [
+        { id: "p1", name: "Thomas Abbott", fsId: "KWJ1-001", birthYear: 1808, deathYear: 1878, branchColor: "#38bdf8" },
+        { id: "p2", name: "Sarah Jenkins", fsId: "KWJ1-002", birthYear: 1811, deathYear: 1884, branchColor: "#f43f5e" },
+        { id: "p3", name: "Erik Lindqvist", fsId: "L2M4-991", birthYear: 1815, deathYear: 1891, branchColor: "#34d399" }
+      ],
+      relationships: [
+        { id: "r1", person1Id: "p1", person2Id: "p2", type: "spouse", marriageYear: 1839 }
+      ],
+      events: [
+        // Thomas Abbott (New York -> Ohio -> Illinois -> Utah)
+        { id: "e1", personId: "p1", type: "Birth", year: 1808, place: "Kortright, Delaware, New York", lat: 42.3409, lng: -74.8002, transport: "Auto", notes: "Born on family dairy farm." },
+        { id: "e2", personId: "p1", type: "Residence / Census", year: 1832, place: "Rochester, Monroe, New York", lat: 43.1566, lng: -77.6088, transport: "Canal Packet Boat", notes: "Moved west along the newly opened Erie Canal." },
+        { id: "e3", personId: "p1", type: "Residence / Census", year: 1837, place: "Kirtland, Lake, Ohio", lat: 41.6292, lng: -81.3615, transport: "Auto", notes: "Lake Erie steamboat from Buffalo to Fairport Harbor." },
+        { id: "e4", personId: "p1", type: "Marriage", year: 1839, place: "Quincy, Adams, Illinois", lat: 39.9356, lng: -91.4099, transport: "Auto", notes: "Met and married Sarah Jenkins after both families arrived in Adams County." },
+        { id: "e5", personId: "p1", type: "Residence / Census", year: 1845, place: "Nauvoo, Hancock, Illinois", lat: 40.5500, lng: -91.3850, transport: "Auto", notes: "Built brick home near the Mississippi riverfront." },
+        { id: "e6", personId: "p1", type: "Land Deed / Homestead", year: 1851, place: "Ogden, Weber, Utah", lat: 41.2230, lng: -111.9738, transport: "Ox Wagon / Handcart", notes: "Crossed the plains by ox-team company." },
+
+        // Sarah Jenkins (Lancashire England -> New York -> Ohio -> Illinois -> Utah)
+        { id: "e7", personId: "p2", type: "Birth", year: 1811, place: "Preston, Lancashire, England", lat: 53.7632, lng: -2.7031, transport: "Auto", notes: "Born in textile mill parish." },
+        { id: "e8", personId: "p2", type: "Arrival", year: 1835, place: "New York City, New York", lat: 40.7128, lng: -74.0060, transport: "Sailing Packet Ship", notes: "5-week Atlantic crossing from Liverpool." },
+        { id: "e9", personId: "p2", type: "Residence / Census", year: 1837, place: "Painesville, Lake, Ohio", lat: 41.7245, lng: -81.2457, transport: "Auto", notes: "Notice how in 1837 she lived just 8 miles from Thomas Abbott before they knew each other!" },
+        { id: "e10", personId: "p2", type: "Marriage", year: 1839, place: "Quincy, Adams, Illinois", lat: 39.9356, lng: -91.4099, transport: "Auto", notes: "Married Thomas Abbott." },
+        { id: "e11", personId: "p2", type: "Residence / Census", year: 1845, place: "Nauvoo, Hancock, Illinois", lat: 40.5500, lng: -91.3850, transport: "Auto", notes: "Lived in Nauvoo with Thomas." },
+        { id: "e12", personId: "p2", type: "Land Deed / Homestead", year: 1851, place: "Ogden, Weber, Utah", lat: 41.2230, lng: -111.9738, transport: "Ox Wagon / Handcart", notes: "Settled in Weber Valley." },
+
+        // Erik Lindqvist (Sweden -> Illinois -> Utah)
+        { id: "e13", personId: "p3", type: "Birth", year: 1815, place: "Malmö, Skåne, Sweden", lat: 55.6050, lng: 13.0038, transport: "Auto", notes: "Carpentry apprentice." },
+        { id: "e14", personId: "p3", type: "Residence / Census", year: 1844, place: "Carthage, Hancock, Illinois", lat: 40.4128, lng: -91.1365, transport: "Auto", notes: "Worked 14 miles away from the Abbotts in Hancock County." },
+        { id: "e15", personId: "p3", type: "Land Deed / Homestead", year: 1852, place: "Brigham City, Box Elder, Utah", lat: 41.5102, lng: -112.0155, transport: "Ox Wagon / Handcart", notes: "Settled just north of Ogden." }
+      ]
+    };
+
+    // =========================================================================
+    // 2. STATE & INITIALIZATION
+    // =========================================================================
+    let appData = JSON.parse(localStorage.getItem("ancestor_geotracker_data")) || JSON.parse(JSON.stringify(DEFAULT_DATA));
+    let map, baseTileLayer, markersLayer, pathsLayer, proximityLayer, relLayer;
+    let playInterval = null;
+    let expandedPersonIds = new Set();
+    let hiddenPersonIds = new Set();
+    let gedcomGeocodeAbort = false;
+
+    const BASEMAPS = {
+      voyager: {
+        url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      },
+      topo: {
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        attribution: "Tiles &copy; Esri"
+      },
+      satellite: {
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attribution: "Tiles &copy; Esri"
+      },
+      dark: {
+        url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initMap();
+      refreshDropdowns();
+      checkCloudConfig();
+      updateMapForYear();
+    });
+
+    function initMap() {
+      map = L.map("map", { center: [41.5, -88.0], zoom: 4 });
+
+      baseTileLayer = L.tileLayer(BASEMAPS.voyager.url, {
+        attribution: BASEMAPS.voyager.attribution,
+        maxZoom: 18
+      }).addTo(map);
+
+      pathsLayer = L.layerGroup().addTo(map);
+      relLayer = L.layerGroup().addTo(map);
+      proximityLayer = L.layerGroup().addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+
+      // Click on map to pre-fill Lat/Lng in the Add Waypoint form
+      map.on("click", (e) => {
+        document.getElementById("eLat").value = e.latlng.lat.toFixed(4);
+        document.getElementById("eLng").value = e.latlng.lng.toFixed(4);
+      });
+    }
+
+    function changeBasemap(styleKey) {
+      const cfg = BASEMAPS[styleKey] || BASEMAPS.voyager;
+      if (baseTileLayer) map.removeLayer(baseTileLayer);
+      baseTileLayer = L.tileLayer(cfg.url, {
+        attribution: cfg.attribution,
+        maxZoom: 18
+      }).addTo(map);
+    }
+
+    function fitAllMarkers() {
+      const coords = appData.events
+        .filter((e) => !hiddenPersonIds.has(e.personId) && !isNaN(e.lat) && !isNaN(e.lng))
+        .map((e) => [e.lat, e.lng]);
+      if (coords.length > 0) {
+        map.fitBounds(coords, { padding: [40, 40], maxZoom: 10 });
+      }
+    }
+
+    // =========================================================================
+    // 3. HISTORICAL TRANSPORTATION & HAVERSINE ENGINE
+    // =========================================================================
+    function haversineMiles(lat1, lon1, lat2, lon2) {
+      const R = 3958.8; // Earth radius in miles
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function analyzeHistoricalJourney(evFrom, evTo, personName) {
+      const dist = Math.round(haversineMiles(evFrom.lat, evFrom.lng, evTo.lat, evTo.lng));
+      const year = evTo.year;
+      let mode = evTo.transport && evTo.transport !== "Auto" ? evTo.transport : "";
+      let speedMpd = 20; // miles per day default
+      let context = "";
+
+      const crossesAtlantic = (evFrom.lng > -25 && evTo.lng < -50) || (evFrom.lng < -50 && evTo.lng > -25);
+
+      if (!mode) {
+        if (crossesAtlantic) {
+          if (year < 1852) {
+            mode = "⛵ Sailing Packet Ship";
+            speedMpd = 100;
+            context = `In ${year}, transatlantic emigrants sailed aboard wooden packet ships (typically from Liverpool or Scandinavian ports), enduring 4 to 6 weeks at sea depending on winds.`;
+          } else {
+            mode = "🚢 Transatlantic Steamship";
+            speedMpd = 260;
+            context = `By ${year}, iron-hulled steamships had cut the Atlantic crossing down to 10–14 days, making ocean migration safer and faster.`;
+          }
+        } else if (year >= 1825 && year <= 1855 && evFrom.lat > 40 && evTo.lat > 40 && evFrom.lng > -84 && evTo.lng > -84) {
+          mode = "🛶 Canal Packet / Lake Steamer";
+          speedMpd = 45;
+          context = `Between 1825 and 1855, the Erie Canal and Great Lakes steamers served as the primary highway connecting New England/New York to Ohio and the Midwest.`;
+        } else if (evTo.lng < -100 && year < 1869) {
+          mode = "🐂 Ox Wagon / Overland Trail";
+          speedMpd = 14;
+          context = `Before the 1869 Transcontinental Railroad, crossing the Plains and Rockies required ox-drawn wagons or handcarts averaging 12–15 miles per day over 3 months.`;
+        } else if (year >= 1855) {
+          mode = "🚂 Early Steam Railroad";
+          speedMpd = 220;
+          context = `By ${year}, expanding steam rail lines connected major towns, turning weeks of muddy wagon travel into a few days by rail.`;
+        } else {
+          mode = "🐎 Turnpike Wagon / Riverboat";
+          speedMpd = 22;
+          context = `In ${year}, overland family moves relied on horse/ox wagons along corduroy turnpikes or flatboats along the Ohio and Mississippi river valleys.`;
+        }
+      } else {
+        if (mode.includes("Sailing")) speedMpd = 100;
+        else if (mode.includes("Steamship") || mode.includes("Rail")) speedMpd = 230;
+        else if (mode.includes("Canal") || mode.includes("River")) speedMpd = 50;
+        else speedMpd = 15;
+        context = evTo.notes || `Historical movement recorded between ${evFrom.place} and ${evTo.place} (${evFrom.year}–${evTo.year}).`;
+      }
+
+      const estDays = Math.max(1, Math.round(dist / speedMpd));
+      const timeStr = estDays > 21 ? `~${Math.round(estDays / 7)} weeks (${estDays} days)` : `~${estDays} days`;
+
+      return {
+        personName,
+        fromPlace: evFrom.place,
+        toPlace: evTo.place,
+        years: `${evFrom.year} → ${evTo.year}`,
+        dist: `${dist.toLocaleString()} miles`,
+        mode,
+        timeStr,
+        context
+      };
+    }
+
+    // =========================================================================
+    // 4. RENDERING THE MAP FOR THE CURRENT SLIDER YEAR
+    // =========================================================================
+    function onSliderInput(val) {
+      document.getElementById("yearDisplay").textContent = val;
+      updateMapForYear();
+    }
+
+    function getPersonPositionAtYear(person, pEvents, currentYear, showGhost) {
+      if (pEvents.length === 0) return null;
+      if (currentYear < person.birthYear || currentYear > person.deathYear) return null;
+
+      let lat = pEvents[0].lat;
+      let lng = pEvents[0].lng;
+      let currentPlace = pEvents[0].place;
+      let statusLabel = `${pEvents[0].type} (${pEvents[0].year})`;
+      let isInterpolated = false;
+
+      for (let i = 0; i < pEvents.length; i++) {
+        if (pEvents[i].year === currentYear) {
+          lat = pEvents[i].lat;
+          lng = pEvents[i].lng;
+          currentPlace = pEvents[i].place;
+          statusLabel = `${pEvents[i].type} in ${currentYear}`;
+          isInterpolated = false;
+          break;
+        } else if (
+          i < pEvents.length - 1 &&
+          currentYear > pEvents[i].year &&
+          currentYear < pEvents[i + 1].year
+        ) {
+          if (showGhost) {
+            const ratio = (currentYear - pEvents[i].year) / (pEvents[i + 1].year - pEvents[i].year);
+            lat = pEvents[i].lat + (pEvents[i + 1].lat - pEvents[i].lat) * ratio;
+            lng = pEvents[i].lng + (pEvents[i + 1].lng - pEvents[i].lng) * ratio;
+            currentPlace = `In transit / Between ${pEvents[i].place.split(",")[0]} & ${pEvents[i + 1].place.split(",")[0]}`;
+            statusLabel = `Estimated between ${pEvents[i].year} & ${pEvents[i + 1].year}`;
+            isInterpolated = true;
+          } else {
+            lat = pEvents[i].lat;
+            lng = pEvents[i].lng;
+            currentPlace = pEvents[i].place;
+            statusLabel = `Last recorded at ${pEvents[i].place} (${pEvents[i].year})`;
+          }
+          break;
+        } else if (currentYear > pEvents[pEvents.length - 1].year) {
+          const lastEv = pEvents[pEvents.length - 1];
+          lat = lastEv.lat;
+          lng = lastEv.lng;
+          currentPlace = lastEv.place;
+          statusLabel = `Residing at ${lastEv.place} (since ${lastEv.year})`;
+        }
+      }
+
+      return {
+        person,
+        lat,
+        lng,
+        place: currentPlace,
+        statusLabel,
+        isInterpolated,
+        age: currentYear - person.birthYear
+      };
+    }
+
+    function getFilteredPersons() {
+      const q = (document.getElementById("rosterSearch")?.value || "").trim().toLowerCase();
+      const branch = document.getElementById("branchFilter")?.value || "";
+
+      return appData.persons.filter((p) => {
+        if (branch && p.branchColor !== branch) return false;
+        if (!q) return true;
+        const nameMatch = p.name.toLowerCase().includes(q);
+        const fsMatch = (p.fsId || "").toLowerCase().includes(q);
+        const placeMatch = appData.events.some(
+          (e) => e.personId === p.id && (e.place || "").toLowerCase().includes(q)
+        );
+        return nameMatch || fsMatch || placeMatch;
+      });
+    }
+
+    function updateMapForYear() {
+      const currentYear = parseInt(document.getElementById("yearSlider").value, 10);
+      const showGhost = document.getElementById("toggleGhost").checked;
+      const showRel = document.getElementById("toggleRelLines").checked;
+      const showFuture = document.getElementById("toggleFuturePaths").checked;
+      const proxThreshold = parseFloat(document.getElementById("proximityRadius").value) || 35;
+
+      markersLayer.clearLayers();
+      pathsLayer.clearLayers();
+      proximityLayer.clearLayers();
+      relLayer.clearLayers();
+
+      const visiblePersons = getFilteredPersons();
+      const activePositions = [];
+
+      visiblePersons.forEach((person) => {
+        if (hiddenPersonIds.has(person.id)) return;
+
+        const pEvents = appData.events
+          .filter((e) => e.personId === person.id && !isNaN(e.lat) && !isNaN(e.lng))
+          .sort((a, b) => a.year - b.year);
+
+        if (pEvents.length === 0) return;
+
+        // Draw migration path segments
+        for (let i = 0; i < pEvents.length - 1; i++) {
+          const evA = pEvents[i];
+          const evB = pEvents[i + 1];
+          const isPast = evB.year <= currentYear;
+          const isInProgress = evA.year <= currentYear && evB.year > currentYear;
+
+          if (isPast || isInProgress || showFuture) {
+            const line = L.polyline([[evA.lat, evA.lng], [evB.lat, evB.lng]], {
+              color: person.branchColor,
+              weight: isPast || isInProgress ? 3.5 : 2,
+              opacity: isPast || isInProgress ? 0.85 : 0.35,
+              dashArray: isPast ? null : "6, 6"
+            }).addTo(pathsLayer);
+
+            line.on("click", () => {
+              const info = analyzeHistoricalJourney(evA, evB, person.name);
+              showJourneyCard(info);
+            });
+          }
+        }
+
+        const pos = getPersonPositionAtYear(person, pEvents, currentYear, showGhost);
+        if (pos) activePositions.push(pos);
+      });
+
+      // Calculate Haversine Proximity ("Crossed Paths")
+      const alerts = [];
+      const nearPersonIds = new Set();
+
+      for (let i = 0; i < activePositions.length; i++) {
+        for (let j = i + 1; j < activePositions.length; j++) {
+          const a = activePositions[i];
+          const b = activePositions[j];
+          const dist = haversineMiles(a.lat, a.lng, b.lat, b.lng);
+
+          if (dist <= proxThreshold) {
+            nearPersonIds.add(a.person.id);
+            nearPersonIds.add(b.person.id);
+            alerts.push({
+              nameA: a.person.name,
+              nameB: b.person.name,
+              dist: Math.round(dist),
+              place: a.place.split(",")[0],
+              lat: (a.lat + b.lat) / 2,
+              lng: (a.lng + b.lng) / 2
+            });
+
+            L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
+              color: "#facc15",
+              weight: 3,
+              dashArray: "4, 6"
+            }).addTo(proximityLayer);
+          }
+        }
+      }
+
+      // Draw Relationship Lines if enabled
+      if (showRel) {
+        appData.relationships.forEach((rel) => {
+          const posA = activePositions.find((p) => p.person.id === rel.person1Id);
+          const posB = activePositions.find((p) => p.person.id === rel.person2Id);
+          if (posA && posB) {
+            L.polyline([[posA.lat, posA.lng], [posB.lat, posB.lng]], {
+              color: "#f472b6",
+              weight: 1.5,
+              opacity: 0.7,
+              dashArray: "2, 5"
+            }).addTo(relLayer);
+          }
+        });
+      }
+
+      // Render Active Ancestor Pins
+      activePositions.forEach((pos) => {
+        const isNear = nearPersonIds.has(pos.person.id);
+        const icon = L.divIcon({
+          className: "",
+          html: `<div class="ancestor-pin ${isNear ? "proximity-pulse" : ""}" style="
+            width: 22px; height: 22px;
+            background: ${pos.person.branchColor};
+            opacity: ${pos.isInterpolated ? "0.7" : "1"};
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: #0f172a;
+          ">${escapeHtml(pos.person.name.charAt(0))}</div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        });
+
+        const marker = L.marker([pos.lat, pos.lng], { icon }).addTo(markersLayer);
+        const fsBadge = pos.person.fsId
+          ? `<a href="https://www.familysearch.org/tree/person/details/${encodeURIComponent(pos.person.fsId)}" target="_blank" rel="noopener" style="color:#0284c7; text-decoration:underline;">${escapeHtml(pos.person.fsId)}</a>`
+          : "N/A";
+        marker.bindPopup(`
+          <div style="font-size:12px; min-width:200px;">
+            <div style="font-weight:bold; font-size:14px; color:#0f172a;">${escapeHtml(pos.person.name)}</div>
+            <div style="color:#475569; font-size:11px;">FS ID: ${fsBadge} • Age in ${currentYear}: <strong>${pos.age}</strong></div>
+            <hr style="margin:6px 0; border-color:#e2e8f0;"/>
+            <div><strong>Location:</strong> ${escapeHtml(pos.place)}</div>
+            <div style="color:#64748b; font-size:11px; margin-top:2px;">${escapeHtml(pos.statusLabel)}</div>
+          </div>
+        `);
+      });
+
+      renderSidebarUpdates(visiblePersons, activePositions, alerts, currentYear);
+    }
+
+    function renderSidebarUpdates(visiblePersons, activePositions, alerts, currentYear) {
+      document.getElementById("activeCount").textContent = `${activePositions.length} Alive in ${currentYear}`;
+
+      const alertBox = document.getElementById("proximityAlerts");
+      if (alerts.length === 0) {
+        alertBox.innerHTML = `<div class="text-slate-500 italic">No ancestors within threshold in ${currentYear}. Scrub the timeline to spot overlaps!</div>`;
+      } else {
+        alertBox.innerHTML = alerts.map((a) => `
+          <div onclick="map.flyTo([${a.lat}, ${a.lng}], 9)" class="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded px-2.5 py-1.5 cursor-pointer transition" title="Click to zoom to convergence">
+            <span class="font-bold text-amber-300">${escapeHtml(a.nameA)}</span> & <span class="font-bold text-amber-300">${escapeHtml(a.nameB)}</span>
+            are <strong>${a.dist} miles apart</strong> near ${escapeHtml(a.place)}!
+          </div>
+        `).join("");
+      }
+
+      const roster = document.getElementById("ancestorRoster");
+      if (visiblePersons.length === 0) {
+        roster.innerHTML = `<div class="text-xs text-slate-500 italic py-3 text-center">No matching ancestors found.</div>`;
+        return;
+      }
+
+      roster.innerHTML = visiblePersons.map((p) => {
+        const active = activePositions.find((ap) => ap.person.id === p.id);
+        const pEvents = appData.events
+          .filter((e) => e.personId === p.id)
+          .sort((a, b) => a.year - b.year);
+        const isExpanded = expandedPersonIds.has(p.id);
+        const isHidden = hiddenPersonIds.has(p.id);
+
+        const rels = appData.relationships.filter((r) => r.person1Id === p.id || r.person2Id === p.id);
+        const relBadges = rels.map((r) => {
+          const otherId = r.person1Id === p.id ? r.person2Id : r.person1Id;
+          const other = appData.persons.find((op) => op.id === otherId);
+          if (!other) return "";
+          let label = r.type;
+          if (r.type === "parent" && r.person2Id === p.id) label = "child of";
+          else if (r.type === "parent" && r.person1Id === p.id) label = "parent of";
+          else if (r.type === "child" && r.person1Id === p.id) label = "child of";
+          else if (r.type === "child" && r.person2Id === p.id) label = "parent of";
+          else if (r.type === "spouse") label = "spouse:";
+          return `<span class="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] text-slate-300">
+            ${escapeHtml(label)} <strong>${escapeHtml(other.name)}</strong>
+            <button onclick="event.stopPropagation(); deleteRelationship('${r.id}')" class="text-slate-500 hover:text-rose-400 ml-0.5" title="Remove relationship">✕</button>
+          </span>`;
+        }).join(" ");
+
+        const eventsListHtml = pEvents.length === 0
+          ? `<div class="text-[11px] text-slate-500 italic">No waypoints recorded yet.</div>`
+          : pEvents.map((ev) => `
+            <div class="flex items-start justify-between gap-2 bg-slate-950/70 border border-slate-800 rounded px-2 py-1.5 text-[11px]">
+              <div class="cursor-pointer flex-1" onclick="jumpToEvent('${ev.id}')" title="Jump to ${ev.year} & fly to location">
+                <div class="font-semibold text-amber-300">${ev.year} • ${escapeHtml(ev.type)}</div>
+                <div class="text-slate-300">${escapeHtml(ev.place)}</div>
+                ${ev.notes ? `<div class="text-[10px] text-slate-400 italic mt-0.5">${escapeHtml(ev.notes)}</div>` : ""}
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="startEditEvent('${ev.id}')" title="Edit waypoint" class="text-slate-400 hover:text-amber-300 px-1">✏️</button>
+                <button onclick="deleteEvent('${ev.id}')" title="Delete waypoint" class="text-slate-500 hover:text-rose-400 px-1">🗑</button>
+              </div>
+            </div>
+          `).join("");
+
+        return `
+          <div class="bg-slate-900 border ${active ? "border-slate-600" : "border-slate-800 opacity-65"} rounded-lg p-2.5 text-xs transition">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0" onclick="toggleExpandPerson('${p.id}')">
+                <span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:${p.branchColor}"></span>
+                <div class="truncate">
+                  <div class="font-bold text-slate-100 truncate">
+                    ${escapeHtml(p.name)} <span class="text-slate-400 font-normal">(${p.birthYear}–${p.deathYear})</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 truncate">
+                    ${active ? `📍 ${escapeHtml(active.place)} (Age ${active.age})` : `Not alive in ${currentYear}`} • ${pEvents.length} waypoints
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-0.5 shrink-0">
+                <button onclick="focusPersonOnMap('${p.id}')" title="Zoom to ancestor trail" class="text-slate-400 hover:text-sky-400 px-1">🎯</button>
+                <button onclick="togglePersonVisibility('${p.id}')" title="${isHidden ? "Show on map" : "Hide on map"}" class="px-1 ${isHidden ? "text-slate-600" : "text-slate-400 hover:text-white"}">👁️</button>
+                <button onclick="startEditPerson('${p.id}')" title="Edit ancestor" class="text-slate-400 hover:text-amber-300 px-1">✏️</button>
+                <button onclick="deletePerson('${p.id}')" title="Remove ancestor" class="text-slate-500 hover:text-rose-400 px-1">🗑</button>
+              </div>
+            </div>
+
+            ${isExpanded ? `
+              <div class="mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-[11px] text-slate-400">
+                  <span>FS ID: <strong class="text-slate-200">${escapeHtml(p.fsId || "None")}</strong></span>
+                  <button onclick="quickAddWaypointFor('${p.id}')" class="text-emerald-400 hover:text-emerald-300 font-semibold">+ Add Waypoint</button>
+                </div>
+                ${relBadges ? `<div class="flex flex-wrap gap-1">${relBadges}</div>` : ""}
+                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+                  ${eventsListHtml}
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function toggleExpandPerson(id) {
+      if (expandedPersonIds.has(id)) expandedPersonIds.delete(id);
+      else expandedPersonIds.add(id);
+      updateMapForYear();
+    }
+
+    function togglePersonVisibility(id) {
+      if (hiddenPersonIds.has(id)) hiddenPersonIds.delete(id);
+      else hiddenPersonIds.add(id);
+      updateMapForYear();
+    }
+
+    function focusPersonOnMap(personId) {
+      const pEvents = appData.events.filter((e) => e.personId === personId && !isNaN(e.lat) && !isNaN(e.lng));
+      if (pEvents.length === 0) return;
+      if (pEvents.length === 1) {
+        map.flyTo([pEvents[0].lat, pEvents[0].lng], 8);
+      } else {
+        map.fitBounds(pEvents.map((e) => [e.lat, e.lng]), { padding: [50, 50], maxZoom: 9 });
+      }
+    }
+
+    function jumpToEvent(eventId) {
+      const ev = appData.events.find((e) => e.id === eventId);
+      if (!ev) return;
+      const slider = document.getElementById("yearSlider");
+      if (ev.year < parseInt(slider.min, 10)) {
+        document.getElementById("sliderMinInput").value = ev.year - 10;
+        updateSliderBounds();
+      }
+      if (ev.year > parseInt(slider.max, 10)) {
+        document.getElementById("sliderMaxInput").value = ev.year + 10;
+        updateSliderBounds();
+      }
+      slider.value = ev.year;
+      onSliderInput(ev.year);
+      if (!isNaN(ev.lat) && !isNaN(ev.lng)) {
+        map.flyTo([ev.lat, ev.lng], 8);
+      }
+    }
+
+    function quickAddWaypointFor(personId) {
+      resetEventForm();
+      switchTab("event");
+      document.getElementById("ePersonId").value = personId;
+    }
+
+    // Scan entire timeline range for proximity convergences
+    function scanAllTimelineConvergences() {
+      const minYear = parseInt(document.getElementById("yearSlider").min, 10) || 1750;
+      const maxYear = parseInt(document.getElementById("yearSlider").max, 10) || 1950;
+      const proxThreshold = parseFloat(document.getElementById("proximityRadius").value) || 35;
+      const showGhost = document.getElementById("toggleGhost").checked;
+
+      const pairWindows = new Map();
+
+      for (let yr = minYear; yr <= maxYear; yr++) {
+        const active = [];
+        appData.persons.forEach((person) => {
+          if (hiddenPersonIds.has(person.id)) return;
+          const pEvents = appData.events
+            .filter((e) => e.personId === person.id && !isNaN(e.lat) && !isNaN(e.lng))
+            .sort((a, b) => a.year - b.year);
+          const pos = getPersonPositionAtYear(person, pEvents, yr, showGhost);
+          if (pos) active.push(pos);
+        });
+
+        for (let i = 0; i < active.length; i++) {
+          for (let j = i + 1; j < active.length; j++) {
+            const a = active[i];
+            const b = active[j];
+            const dist = haversineMiles(a.lat, a.lng, b.lat, b.lng);
+            if (dist <= proxThreshold) {
+              const key = [a.person.id, b.person.id].sort().join("__");
+              const placeShort = a.place.split(",")[0];
+              if (!pairWindows.has(key)) {
+                pairWindows.set(key, {
+                  nameA: a.person.name,
+                  nameB: b.person.name,
+                  startYear: yr,
+                  endYear: yr,
+                  minDist: Math.round(dist),
+                  bestYear: yr,
+                  bestLat: (a.lat + b.lat) / 2,
+                  bestLng: (a.lng + b.lng) / 2,
+                  place: placeShort
+                });
+              } else {
+                const entry = pairWindows.get(key);
+                entry.endYear = yr;
+                if (Math.round(dist) < entry.minDist) {
+                  entry.minDist = Math.round(dist);
+                  entry.bestYear = yr;
+                  entry.bestLat = (a.lat + b.lat) / 2;
+                  entry.bestLng = (a.lng + b.lng) / 2;
+                  entry.place = placeShort;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const drawer = document.getElementById("allConvergencesDrawer");
+      const badge = document.getElementById("scanResultBadge");
+      const results = Array.from(pairWindows.values()).sort((a, b) => a.bestYear - b.bestYear);
+
+      badge.textContent = `${results.length} pair(s) found`;
+      drawer.classList.remove("hidden");
+
+      if (results.length === 0) {
+        drawer.innerHTML = `<div class="text-slate-500 italic">No convergences within ${proxThreshold} mi between ${minYear} and ${maxYear}.</div>`;
+      } else {
+        drawer.innerHTML = results.map((r) => `
+          <div onclick="jumpToYearAndCoords(${r.bestYear}, ${r.bestLat}, ${r.bestLng})"
+            class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded px-2 py-1 cursor-pointer transition flex items-center justify-between">
+            <div>
+              <span class="font-semibold text-amber-300">${escapeHtml(r.nameA)} & ${escapeHtml(r.nameB)}</span>
+              <div class="text-[10px] text-slate-400">${r.startYear === r.endYear ? r.startYear : `${r.startYear}–${r.endYear}`} • Closest: ${r.minDist} mi (${escapeHtml(r.place)})</div>
+            </div>
+            <span class="text-amber-400 font-bold ml-2">${r.bestYear} ➔</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    function jumpToYearAndCoords(year, lat, lng) {
+      const slider = document.getElementById("yearSlider");
+      slider.value = year;
+      onSliderInput(year);
+      map.flyTo([lat, lng], 8);
+    }
+
+    function showJourneyCard(info) {
+      const card = document.getElementById("journeyCard");
+      document.getElementById("jcBadge").textContent = `${info.personName} (${info.years})`;
+      document.getElementById("jcTitle").textContent = `${info.fromPlace.split(",")[0]} ➔ ${info.toPlace.split(",")[0]}`;
+      document.getElementById("jcLocations").textContent = `${info.fromPlace} to ${info.toPlace}`;
+      document.getElementById("jcDist").textContent = info.dist;
+      document.getElementById("jcMode").textContent = info.mode;
+      document.getElementById("jcTime").textContent = info.timeStr;
+      document.getElementById("jcContext").textContent = info.context;
+      card.classList.remove("hidden");
+    }
+
+    // =========================================================================
+    // 5. FORMS, EDITING, GEOCODING & DATA PERSISTENCE
+    // =========================================================================
+    async function lookupCoordinates() {
+      const place = document.getElementById("ePlace").value.trim();
+      if (!place) return alert("Enter a town, county, or country first!");
+      const btn = document.getElementById("geoBtn");
+      btn.textContent = "⏳...";
+      try {
+        const coords = await geocodePlaceString(place);
+        if (coords) {
+          document.getElementById("eLat").value = coords.lat.toFixed(4);
+          document.getElementById("eLng").value = coords.lng.toFixed(4);
+          map.flyTo([coords.lat, coords.lng], 7);
+        } else {
+          alert("Place not found. Try 'City, State' or click directly on the map.");
+        }
+      } catch (err) {
+        alert("Geocoder error. You can also click anywhere on the map to set coordinates.");
+      }
+      btn.textContent = "🔍 Geocode";
+    }
+
+    function savePersonForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById("editPersonId").value;
+      const personPayload = {
+        id: editId || "p_" + Date.now(),
+        name: document.getElementById("pName").value.trim(),
+        fsId: document.getElementById("pFsId").value.trim(),
+        birthYear: parseInt(document.getElementById("pBirth").value, 10),
+        deathYear: parseInt(document.getElementById("pDeath").value, 10),
+        branchColor: document.getElementById("pBranch").value
+      };
+
+      if (editId) {
+        const idx = appData.persons.findIndex((p) => p.id === editId);
+        if (idx !== -1) appData.persons[idx] = personPayload;
+      } else {
+        appData.persons.push(personPayload);
+      }
+
+      const relType = document.getElementById("pRelType").value;
+      const relTarget = document.getElementById("pRelTarget").value;
+      if (relType && relTarget && relTarget !== personPayload.id) {
+        appData.relationships.push({
+          id: "r_" + Date.now(),
+          person1Id: personPayload.id,
+          person2Id: relTarget,
+          type: relType
+        });
+      }
+
+      saveData();
+      refreshDropdowns();
+      resetPersonForm();
+
+      if (editId) {
+        switchTab("radar");
+        updateMapForYear();
+      } else {
+        switchTab("event");
+        document.getElementById("ePersonId").value = personPayload.id;
+      }
+    }
+
+    function startEditPerson(personId) {
+      const p = appData.persons.find((item) => item.id === personId);
+      if (!p) return;
+      switchTab("person");
+      document.getElementById("editPersonId").value = p.id;
+      document.getElementById("pName").value = p.name;
+      document.getElementById("pFsId").value = p.fsId || "";
+      document.getElementById("pBirth").value = p.birthYear;
+      document.getElementById("pDeath").value = p.deathYear;
+      document.getElementById("pBranch").value = p.branchColor || "#38bdf8";
+      document.getElementById("personFormTitle").textContent = `Edit Ancestor: ${p.name}`;
+      document.getElementById("personSubmitBtn").textContent = "💾 Update Ancestor";
+      document.getElementById("cancelPersonEditBtn").classList.remove("hidden");
+    }
+
+    function resetPersonForm() {
+      document.getElementById("personForm").reset();
+      document.getElementById("editPersonId").value = "";
+      document.getElementById("personFormTitle").textContent = "Add Tracked Ancestor";
+      document.getElementById("personSubmitBtn").textContent = "+ Save Ancestor to GeoTracker";
+      document.getElementById("cancelPersonEditBtn").classList.add("hidden");
+    }
+
+    function saveEventForm(e) {
+      e.preventDefault();
+      const editId = document.getElementById("editEventId").value;
+      const evPayload = {
+        id: editId || "e_" + Date.now(),
+        personId: document.getElementById("ePersonId").value,
+        type: document.getElementById("eType").value,
+        year: parseInt(document.getElementById("eYear").value, 10),
+        place: document.getElementById("ePlace").value.trim(),
+        lat: parseFloat(document.getElementById("eLat").value),
+        lng: parseFloat(document.getElementById("eLng").value),
+        transport: document.getElementById("eTransport").value,
+        notes: document.getElementById("eNotes").value.trim()
+      };
+
+      if (editId) {
+        const idx = appData.events.findIndex((ev) => ev.id === editId);
+        if (idx !== -1) appData.events[idx] = evPayload;
+      } else {
+        appData.events.push(evPayload);
+      }
+
+      document.getElementById("yearSlider").value = evPayload.year;
+      document.getElementById("yearDisplay").textContent = evPayload.year;
+
+      saveData();
+      resetEventForm();
+      updateMapForYear();
+      switchTab("radar");
+    }
+
+    function startEditEvent(eventId) {
+      const ev = appData.events.find((item) => item.id === eventId);
+      if (!ev) return;
+      switchTab("event");
+      document.getElementById("editEventId").value = ev.id;
+      document.getElementById("ePersonId").value = ev.personId;
+      document.getElementById("eType").value = ev.type;
+      document.getElementById("eYear").value = ev.year;
+      document.getElementById("ePlace").value = ev.place;
+      document.getElementById("eLat").value = ev.lat;
+      document.getElementById("eLng").value = ev.lng;
+      document.getElementById("eTransport").value = ev.transport || "Auto";
+      document.getElementById("eNotes").value = ev.notes || "";
+      document.getElementById("eventFormTitle").textContent = `Edit Waypoint (${ev.year})`;
+      document.getElementById("eventSubmitBtn").textContent = "💾 Update Waypoint";
+      document.getElementById("cancelEventEditBtn").classList.remove("hidden");
+    }
+
+    function resetEventForm() {
+      document.getElementById("eventForm").reset();
+      document.getElementById("editEventId").value = "";
+      document.getElementById("eventFormTitle").textContent = "Add Time & Place Waypoint";
+      document.getElementById("eventSubmitBtn").textContent = "📍 Plot Waypoint on Map";
+      document.getElementById("cancelEventEditBtn").classList.add("hidden");
+    }
+
+    function deleteEvent(eventId) {
+      if (!confirm("Delete this waypoint?")) return;
+      appData.events = appData.events.filter((e) => e.id !== eventId);
+      saveData();
+      updateMapForYear();
+    }
+
+    function deleteRelationship(relId) {
+      appData.relationships = appData.relationships.filter((r) => r.id !== relId);
+      saveData();
+      updateMapForYear();
+    }
+
+    function deletePerson(id) {
+      if (!confirm("Remove this ancestor and their waypoints?")) return;
+      appData.persons = appData.persons.filter((p) => p.id !== id);
+      appData.events = appData.events.filter((e) => e.personId !== id);
+      appData.relationships = appData.relationships.filter((r) => r.person1Id !== id && r.person2Id !== id);
+      expandedPersonIds.delete(id);
+      hiddenPersonIds.delete(id);
+      saveData();
+      refreshDropdowns();
+      updateMapForYear();
+    }
+
+    function resetDemoData() {
+      if (!confirm("Restore the starter demo dataset? (Your current local dataset will be replaced unless exported first.)")) return;
+      appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      expandedPersonIds.clear();
+      hiddenPersonIds.clear();
+      saveData();
+      refreshDropdowns();
+      document.getElementById("yearSlider").value = 1838;
+      document.getElementById("yearDisplay").textContent = 1838;
+      updateMapForYear();
+      fitAllMarkers();
+    }
+
+    function refreshDropdowns() {
+      const options = appData.persons.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (${p.birthYear}–${p.deathYear})</option>`).join("");
+      document.getElementById("ePersonId").innerHTML = options;
+      document.getElementById("pRelTarget").innerHTML = `<option value="">-- Choose Ancestor --</option>` + options;
+    }
+
+    // =========================================================================
+    // 6. GEDCOM (.GED) PARSER & HISTORICAL PLACE GEOCODER
+    // =========================================================================
+    const HISTORICAL_PLACE_Gazetteer = {
+      "new york": { lat: 42.6526, lng: -73.7562 },
+      "new york city": { lat: 40.7128, lng: -74.0060 },
+      "massachusetts": { lat: 42.3601, lng: -71.0589 },
+      "boston": { lat: 42.3601, lng: -71.0589 },
+      "connecticut": { lat: 41.7658, lng: -72.6734 },
+      "vermont": { lat: 44.2601, lng: -72.5754 },
+      "new hampshire": { lat: 43.2081, lng: -71.5376 },
+      "maine": { lat: 44.3106, lng: -69.7795 },
+      "rhode island": { lat: 41.8240, lng: -71.4128 },
+      "pennsylvania": { lat: 40.2732, lng: -76.8867 },
+      "philadelphia": { lat: 39.9526, lng: -75.1652 },
+      "new jersey": { lat: 40.2171, lng: -74.7429 },
+      "maryland": { lat: 39.2904, lng: -76.6122 },
+      "virginia": { lat: 37.5407, lng: -77.4360 },
+      "north carolina": { lat: 35.7796, lng: -78.6382 },
+      "south carolina": { lat: 34.0007, lng: -81.0348 },
+      "georgia": { lat: 33.7490, lng: -84.3880 },
+      "kentucky": { lat: 38.2009, lng: -84.8733 },
+      "tennessee": { lat: 36.1627, lng: -86.7816 },
+      "ohio": { lat: 40.4173, lng: -82.9071 },
+      "kirtland": { lat: 41.6292, lng: -81.3615 },
+      "indiana": { lat: 39.7684, lng: -86.1581 },
+      "illinois": { lat: 40.6331, lng: -89.3985 },
+      "nauvoo": { lat: 40.5500, lng: -91.3850 },
+      "chicago": { lat: 41.8781, lng: -87.6298 },
+      "missouri": { lat: 38.5767, lng: -92.1735 },
+      "independence, jackson, missouri": { lat: 39.0911, lng: -94.4155 },
+      "st. louis": { lat: 38.6270, lng: -90.1994 },
+      "iowa": { lat: 41.5868, lng: -93.6250 },
+      "council bluffs": { lat: 41.2619, lng: -95.8608 },
+      "winter quarters": { lat: 41.3322, lng: -95.9642 },
+      "nebraska": { lat: 40.8136, lng: -96.7026 },
+      "kansas": { lat: 39.0473, lng: -95.6752 },
+      "michigan": { lat: 42.7325, lng: -84.5555 },
+      "wisconsin": { lat: 43.0731, lng: -89.4012 },
+      "minnesota": { lat: 44.9537, lng: -93.0900 },
+      "utah": { lat: 40.7608, lng: -111.8910 },
+      "salt lake city": { lat: 40.7608, lng: -111.8910 },
+      "ogden": { lat: 41.2230, lng: -111.9738 },
+      "provo": { lat: 40.2338, lng: -111.6585 },
+      "st. george": { lat: 37.0965, lng: -113.5684 },
+      "cache, utah": { lat: 41.7370, lng: -111.8338 },
+      "logan": { lat: 41.7370, lng: -111.8338 },
+      "idaho": { lat: 43.6150, lng: -116.2023 },
+      "wyoming": { lat: 41.1400, lng: -104.8202 },
+      "colorado": { lat: 39.7392, lng: -104.9903 },
+      "california": { lat: 38.5816, lng: -121.4944 },
+      "san francisco": { lat: 37.7749, lng: -122.4194 },
+      "los angeles": { lat: 34.0522, lng: -118.2437 },
+      "oregon": { lat: 44.9429, lng: -123.0351 },
+      "washington": { lat: 47.0379, lng: -122.9007 },
+      "arizona": { lat: 33.4484, lng: -112.0740 },
+      "texas": { lat: 30.2672, lng: -97.7431 },
+      "canada": { lat: 45.4215, lng: -75.6972 },
+      "ontario": { lat: 43.6532, lng: -79.3832 },
+      "quebec": { lat: 46.8139, lng: -71.2080 },
+      "england": { lat: 52.3555, lng: -1.1743 },
+      "london": { lat: 51.5074, lng: -0.1278 },
+      "lancashire": { lat: 53.7632, lng: -2.7031 },
+      "liverpool": { lat: 53.4084, lng: -2.9916 },
+      "yorkshire": { lat: 53.9591, lng: -1.0815 },
+      "scotland": { lat: 55.9533, lng: -3.1883 },
+      "glasgow": { lat: 55.8642, lng: -4.2518 },
+      "edinburgh": { lat: 55.9533, lng: -3.1883 },
+      "wales": { lat: 51.4816, lng: -3.1791 },
+      "ireland": { lat: 53.3498, lng: -6.2603 },
+      "dublin": { lat: 53.3498, lng: -6.2603 },
+      "belfast": { lat: 54.5973, lng: -5.9301 },
+      "sweden": { lat: 59.3293, lng: 18.0686 },
+      "stockholm": { lat: 59.3293, lng: 18.0686 },
+      "skåne": { lat: 55.6050, lng: 13.0038 },
+      "denmark": { lat: 55.6761, lng: 12.5683 },
+      "copenhagen": { lat: 55.6761, lng: 12.5683 },
+      "norway": { lat: 59.9139, lng: 10.7522 },
+      "oslo": { lat: 59.9139, lng: 10.7522 },
+      "germany": { lat: 51.1657, lng: 10.4515 },
+      "prussia": { lat: 52.5200, lng: 13.4050 },
+      "bavaria": { lat: 48.1351, lng: 11.5820 },
+      "switzerland": { lat: 46.9480, lng: 7.4474 },
+      "netherlands": { lat: 52.3676, lng: 4.9041 },
+      "france": { lat: 48.8566, lng: 2.3522 },
+      "italy": { lat: 41.9028, lng: 12.4964 }
+    };
+
+    function getGeoCache() {
+      try {
+        return JSON.parse(localStorage.getItem("ancestor_geotracker_geocache") || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function saveGeoCache(cache) {
+      localStorage.setItem("ancestor_geotracker_geocache", JSON.stringify(cache));
+    }
+
+    function lookupFastGazetteer(placeStr) {
+      if (!placeStr) return null;
+      const clean = placeStr.toLowerCase().trim();
+      const cache = getGeoCache();
+      if (cache[clean]) return cache[clean];
+      if (HISTORICAL_PLACE_Gazetteer[clean]) return HISTORICAL_PLACE_Gazetteer[clean];
+
+      const parts = clean.split(",").map((s) => s.trim()).filter(Boolean);
+      for (const part of parts) {
+        if (HISTORICAL_PLACE_Gazetteer[part]) {
+          return HISTORICAL_PLACE_Gazetteer[part];
+        }
+      }
+      for (const [key, coords] of Object.entries(HISTORICAL_PLACE_Gazetteer)) {
+        if (clean.includes(key)) return coords;
+      }
+      return null;
+    }
+
+    async function geocodePlaceString(placeStr) {
+      const clean = placeStr.toLowerCase().trim();
+      const cache = getGeoCache();
+      if (cache[clean]) return cache[clean];
+
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeStr)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        cache[clean] = coords;
+        saveGeoCache(cache);
+        return coords;
+      }
+      const fallback = lookupFastGazetteer(placeStr);
+      return fallback;
+    }
+
+    function importGEDCOM(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const text = e.target.result;
+          const parsed = parseGedcomText(text);
+          if (parsed.persons.length === 0) {
+            alert("No individuals with birth/death years were found in this GEDCOM file.");
+            return;
+          }
+          const replace = confirm(
+            `Found ${parsed.persons.length} ancestors and ${parsed.events.length} life events in GEDCOM.\n\nClick OK to replace current data, or Cancel to merge with existing data.`
+          );
+          if (replace) {
+            appData = parsed;
+          } else {
+            appData.persons.push(...parsed.persons);
+            appData.relationships.push(...parsed.relationships);
+            appData.events.push(...parsed.events);
+          }
+
+          // Auto-adjust timeline bounds if needed
+          const allYears = appData.events.map((ev) => ev.year).filter((y) => y > 1000 && y < 2100);
+          if (allYears.length > 0) {
+            const minY = Math.min(...allYears);
+            const maxY = Math.max(...allYears);
+            document.getElementById("sliderMinInput").value = Math.min(1750, minY - 5);
+            document.getElementById("sliderMaxInput").value = Math.max(1950, maxY + 5);
+            updateSliderBounds();
+            document.getElementById("yearSlider").value = minY;
+            document.getElementById("yearDisplay").textContent = minY;
+          }
+
+          saveData();
+          refreshDropdowns();
+          updateMapForYear();
+          fitAllMarkers();
+
+          // Geocode any remaining unresolved places in background
+          await runBackgroundGedcomGeocoding();
+        } catch (err) {
+          console.error(err);
+          alert("Error parsing GEDCOM file.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    }
+
+    function parseGedcomText(text) {
+      const lines = text.split(/\r?\n/);
+      const individuals = {};
+      const families = {};
+      let currentRecord = null;
+      let currentSubTag = null;
+
+      const COLORS = ["#38bdf8", "#f43f5e", "#34d399", "#a855f7", "#fb923c"];
+      let colorIdx = 0;
+
+      const EVENT_TAG_MAP = {
+        BIRT: "Birth",
+        CHR: "Christening",
+        BAPM: "Christening",
+        RESI: "Residence / Census",
+        CENS: "Residence / Census",
+        EMIG: "Emigration / Departure",
+        IMMI: "Arrival",
+        ARVL: "Arrival",
+        MARR: "Marriage",
+        EVEN: "Residence / Census",
+        MILI: "Military Service",
+        DEAT: "Death / Burial",
+        BURI: "Death / Burial"
+      };
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const match = line.match(/^(\d+)\s+(@[^@]+@|\S+)(?:\s+(.*))?$/);
+        if (!match) continue;
+
+        const level = parseInt(match[1], 10);
+        const tagOrId = match[2];
+        const rest = (match[3] || "").trim();
+
+        if (level === 0) {
+          currentSubTag = null;
+          if (tagOrId.startsWith("@") && rest === "INDI") {
+            currentRecord = { kind: "INDI", id: tagOrId, name: "Unknown", fsId: "", events: [] };
+            individuals[tagOrId] = currentRecord;
+          } else if (tagOrId.startsWith("@") && rest === "FAM") {
+            currentRecord = { kind: "FAM", id: tagOrId, husb: null, wife: null, children: [], marrEvent: null };
+            families[tagOrId] = currentRecord;
+          } else {
+            currentRecord = null;
+          }
+          continue;
+        }
+
+        if (!currentRecord) continue;
+
+        if (currentRecord.kind === "INDI") {
+          if (level === 1) {
+            currentSubTag = null;
+            if (tagOrId === "NAME") {
+              currentRecord.name = rest.replace(/\//g, "").replace(/\s+/g, " ").trim() || "Unknown";
+            } else if (tagOrId === "_FSFTID" || tagOrId === "REFN") {
+              currentRecord.fsId = rest;
+            } else if (EVENT_TAG_MAP[tagOrId]) {
+              currentSubTag = { type: EVENT_TAG_MAP[tagOrId], rawTag: tagOrId, year: null, place: "", lat: null, lng: null };
+              currentRecord.events.push(currentSubTag);
+            }
+          } else if (level === 2 && currentSubTag) {
+            if (tagOrId === "DATE") {
+              const yrMatch = rest.match(/\b(1[4-9]\d{2}|20\d{2})\b/);
+              if (yrMatch) currentSubTag.year = parseInt(yrMatch[1], 10);
+            } else if (tagOrId === "PLAC") {
+              currentSubTag.place = rest;
+            } else if (tagOrId === "MAP") {
+              // GEDCOM 5.5.1 MAP tag
+            }
+          } else if (level === 3 && currentSubTag) {
+            if (tagOrId === "LATI") {
+              const num = parseFloat(rest.replace("N", "").replace("S", "-"));
+              if (!isNaN(num)) currentSubTag.lat = num;
+            } else if (tagOrId === "LONG") {
+              const num = parseFloat(rest.replace("E", "").replace("W", "-"));
+              if (!isNaN(num)) currentSubTag.lng = num;
+            }
+          }
+        } else if (currentRecord.kind === "FAM") {
+          if (level === 1) {
+            currentSubTag = null;
+            if (tagOrId === "HUSB") currentRecord.husb = rest;
+            else if (tagOrId === "WIFE") currentRecord.wife = rest;
+            else if (tagOrId === "CHIL") currentRecord.children.push(rest);
+            else if (tagOrId === "MARR") {
+              currentSubTag = { type: "Marriage", rawTag: "MARR", year: null, place: "", lat: null, lng: null };
+              currentRecord.marrEvent = currentSubTag;
+            }
+          } else if (level === 2 && currentSubTag) {
+            if (tagOrId === "DATE") {
+              const yrMatch = rest.match(/\b(1[4-9]\d{2}|20\d{2})\b/);
+              if (yrMatch) currentSubTag.year = parseInt(yrMatch[1], 10);
+            } else if (tagOrId === "PLAC") {
+              currentSubTag.place = rest;
+            }
+          }
+        }
+      }
+
+      // Attach family marriage events to spouses
+      Object.values(families).forEach((fam) => {
+        if (fam.marrEvent && (fam.marrEvent.year || fam.marrEvent.place)) {
+          if (fam.husb && individuals[fam.husb]) {
+            individuals[fam.husb].events.push({ ...fam.marrEvent });
+          }
+          if (fam.wife && individuals[fam.wife]) {
+            individuals[fam.wife].events.push({ ...fam.marrEvent });
+          }
+        }
+      });
+
+      const persons = [];
+      const events = [];
+      const relationships = [];
+      const validIndiIds = new Set();
+
+      Object.values(individuals).forEach((indi) => {
+        const validEvents = indi.events.filter((ev) => ev.year && ev.place);
+        const birthEv = indi.events.find((ev) => ev.rawTag === "BIRT" && ev.year);
+        const deathEv = indi.events.find((ev) => (ev.rawTag === "DEAT" || ev.rawTag === "BURI") && ev.year);
+
+        const years = indi.events.map((e) => e.year).filter(Boolean);
+        if (years.length === 0) return;
+
+        const birthYear = birthEv ? birthEv.year : Math.min(...years);
+        const deathYear = deathEv ? deathEv.year : Math.max(birthYear + 72, ...years);
+        const pId = "ged_" + indi.id.replace(/@/g, "");
+
+        persons.push({
+          id: pId,
+          name: indi.name,
+          fsId: indi.fsId || indi.id.replace(/@/g, ""),
+          birthYear,
+          deathYear,
+          branchColor: COLORS[colorIdx % COLORS.length]
+        });
+        colorIdx++;
+        validIndiIds.add(indi.id);
+
+        validEvents.forEach((ev, idx) => {
+          let lat = ev.lat;
+          let lng = ev.lng;
+          let needsGeocode = false;
+          if (lat === null || lng === null || isNaN(lat) || isNaN(lng)) {
+            const fast = lookupFastGazetteer(ev.place);
+            if (fast) {
+              lat = fast.lat;
+              lng = fast.lng;
+            } else {
+              lat = 40.0;
+              lng = -89.0;
+              needsGeocode = true;
+            }
+          }
+          events.push({
+            id: `ged_ev_${pId}_${idx}`,
+            personId: pId,
+            type: ev.type,
+            year: ev.year,
+            place: ev.place,
+            lat,
+            lng,
+            transport: "Auto",
+            notes: "Imported from GEDCOM",
+            needsGeocode
+          });
+        });
+      });
+
+      Object.values(families).forEach((fam, idx) => {
+        const hId = fam.husb && validIndiIds.has(fam.husb) ? "ged_" + fam.husb.replace(/@/g, "") : null;
+        const wId = fam.wife && validIndiIds.has(fam.wife) ? "ged_" + fam.wife.replace(/@/g, "") : null;
+        if (hId && wId) {
+          relationships.push({
+            id: `ged_rel_sp_${idx}`,
+            person1Id: hId,
+            person2Id: wId,
+            type: "spouse"
+          });
+        }
+        fam.children.forEach((chRaw, cIdx) => {
+          if (!validIndiIds.has(chRaw)) return;
+          const cId = "ged_" + chRaw.replace(/@/g, "");
+          if (hId) {
+            relationships.push({ id: `ged_rel_ph_${idx}_${cIdx}`, person1Id: hId, person2Id: cId, type: "parent" });
+          }
+          if (wId) {
+            relationships.push({ id: `ged_rel_pw_${idx}_${cIdx}`, person1Id: wId, person2Id: cId, type: "parent" });
+          }
+        });
+      });
+
+      return { persons, relationships, events };
+    }
+
+    async function runBackgroundGedcomGeocoding() {
+      const pending = appData.events.filter((e) => e.needsGeocode && e.place);
+      if (pending.length === 0) return;
+
+      gedcomGeocodeAbort = false;
+      const banner = document.getElementById("gedcomProgressBanner");
+      const textEl = document.getElementById("gedcomProgressText");
+      banner.classList.remove("hidden");
+
+      const uniquePlaces = [...new Set(pending.map((e) => e.place))];
+      for (let i = 0; i < uniquePlaces.length; i++) {
+        if (gedcomGeocodeAbort) break;
+        const place = uniquePlaces[i];
+        textEl.textContent = `Geocoding place ${i + 1} of ${uniquePlaces.length}: "${place}"...`;
+        try {
+          const coords = await geocodePlaceString(place);
+          if (coords) {
+            appData.events.forEach((ev) => {
+              if (ev.place === place && ev.needsGeocode) {
+                ev.lat = coords.lat;
+                ev.lng = coords.lng;
+                delete ev.needsGeocode;
+              }
+            });
+            saveData();
+            updateMapForYear();
+          }
+          await new Promise((r) => setTimeout(r, 1050)); // Respect Nominatim 1 req/sec policy
+        } catch {
+          // Keep fallback coordinate
+        }
+      }
+
+      banner.classList.add("hidden");
+    }
+
+    function cancelGedcomGeocoding() {
+      gedcomGeocodeAbort = true;
+      document.getElementById("gedcomProgressBanner").classList.add("hidden");
+    }
+
+    // =========================================================================
+    // 7. LOCAL STORAGE + FIREBASE CLOUD SYNC + JSON/KML EXPORT
+    // =========================================================================
+    async function saveData() {
+      localStorage.setItem("ancestor_geotracker_data", JSON.stringify(appData));
+      const dbUrl = localStorage.getItem("ancestor_geotracker_fb_url");
+      const room = localStorage.getItem("ancestor_geotracker_fb_room") || "ancestor_geotracker_main";
+      if (dbUrl) {
+        try {
+          await fetch(`${dbUrl.replace(/\/$/, "")}/${room}.json`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(appData)
+          });
+          setSyncIndicator(true, "Synced to Firebase Cloud");
+        } catch (err) {
+          setSyncIndicator(false, "Cloud Sync Error (Saved Locally)");
+        }
+      }
+    }
+
+    async function checkCloudConfig() {
+      const dbUrl = localStorage.getItem("ancestor_geotracker_fb_url");
+      const room = localStorage.getItem("ancestor_geotracker_fb_room") || "ancestor_geotracker_main";
+      if (dbUrl) {
+        document.getElementById("fbDbUrl").value = dbUrl;
+        document.getElementById("fbRoomKey").value = room;
+        try {
+          const res = await fetch(`${dbUrl.replace(/\/$/, "")}/${room}.json`);
+          const cloudData = await res.json();
+          if (cloudData && cloudData.persons) {
+            appData = {
+              persons: cloudData.persons || [],
+              relationships: cloudData.relationships || [],
+              events: cloudData.events || []
+            };
+            localStorage.setItem("ancestor_geotracker_data", JSON.stringify(appData));
+            refreshDropdowns();
+            updateMapForYear();
+          } else {
+            await saveData();
+          }
+          setSyncIndicator(true, "Firebase Cloud Connected");
+        } catch (err) {
+          setSyncIndicator(false, "Offline (Using Local Cache)");
+        }
+      }
+    }
+
+    function saveCloudConfig() {
+      const url = document.getElementById("fbDbUrl").value.trim();
+      const room = document.getElementById("fbRoomKey").value.trim() || "ancestor_geotracker_main";
+      if (!url) return alert("Please enter your Firebase Realtime Database URL.");
+      localStorage.setItem("ancestor_geotracker_fb_url", url);
+      localStorage.setItem("ancestor_geotracker_fb_room", room);
+      toggleModal("cloudModal");
+      checkCloudConfig();
+    }
+
+    function disconnectCloud() {
+      localStorage.removeItem("ancestor_geotracker_fb_url");
+      setSyncIndicator(false, "Local Storage Mode");
+      toggleModal("cloudModal");
+    }
+
+    function setSyncIndicator(isCloud, text) {
+      document.getElementById("syncDot").className = `w-2 h-2 rounded-full ${isCloud ? "bg-emerald-400" : "bg-amber-400"}`;
+      document.getElementById("syncText").textContent = text;
+    }
+
+    function exportJSON() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ancestor_geotracker_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported.persons && imported.events) {
+            appData = {
+              persons: imported.persons || [],
+              relationships: imported.relationships || [],
+              events: imported.events || []
+            };
+            saveData();
+            refreshDropdowns();
+            updateMapForYear();
+            fitAllMarkers();
+          } else {
+            alert("Invalid Ancestor GeoTracker JSON structure.");
+          }
+        } catch (err) {
+          alert("Could not parse JSON file.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
+    }
+
+    function exportKML() {
+      let placemarks = "";
+      appData.persons.forEach((p) => {
+        const pEvents = appData.events.filter((e) => e.personId === p.id).sort((a, b) => a.year - b.year);
+        pEvents.forEach((ev) => {
+          placemarks += `
+          <Placemark>
+            <name>${escapeXml(p.name)} - ${escapeXml(ev.type)} (${ev.year})</name>
+            <description><![CDATA[${ev.place}<br/>${ev.notes || ""}]]></description>
+            <TimeStamp><when>${ev.year}</when></TimeStamp>
+            <Point><coordinates>${ev.lng},${ev.lat},0</coordinates></Point>
+          </Placemark>`;
+        });
+        if (pEvents.length > 1) {
+          const coords = pEvents.map((e) => `${e.lng},${e.lat},0`).join(" ");
+          placemarks += `
+          <Placemark>
+            <name>${escapeXml(p.name)} GeoTracker Trail</name>
+            <LineString><tessellate>1</tessellate><coordinates>${coords}</coordinates></LineString>
+          </Placemark>`;
+        }
+      });
+
+      const kml = `<?xml version="1.0" encoding="UTF-8"?>
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <name>Ancestor GeoTracker - Google Earth Export</name>
+          ${placemarks}
+        </Document>
+      </kml>`;
+
+      const blob = new Blob([kml], { type: "application/vnd.google-earth.kml+xml" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ancestor_geotracker_earth.kml";
+      a.click();
+    }
+
+    // =========================================================================
+    // 8. UI HELPERS (TABS, TIMELINE PLAYBACK, ESCAPING)
+    // =========================================================================
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function escapeXml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function switchTab(tab) {
+      ["radar", "person", "event"].forEach((t) => {
+        document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById(`tabBtn-${t}`);
+        btn.className = t === tab
+          ? "py-2.5 border-b-2 border-amber-400 text-amber-400"
+          : "py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200";
+      });
+    }
+
+    function toggleModal(id) {
+      document.getElementById(id).classList.toggle("hidden");
+    }
+
+    function updateSliderBounds() {
+      const minVal = parseInt(document.getElementById("sliderMinInput").value, 10) || 1700;
+      const maxVal = parseInt(document.getElementById("sliderMaxInput").value, 10) || 1950;
+      const slider = document.getElementById("yearSlider");
+      slider.min = minVal;
+      slider.max = maxVal;
+      document.getElementById("minYearLabel").textContent = minVal;
+      document.getElementById("maxYearLabel").textContent = maxVal;
+      updateMapForYear();
+    }
+
+    function stepYear(delta) {
+      const slider = document.getElementById("yearSlider");
+      const minVal = parseInt(slider.min, 10);
+      const maxVal = parseInt(slider.max, 10);
+      let next = parseInt(slider.value, 10) + delta;
+      if (next < minVal) next = minVal;
+      if (next > maxVal) next = maxVal;
+      slider.value = next;
+      onSliderInput(next);
+    }
+
+    function togglePlay() {
+      const btn = document.getElementById("playBtn");
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+        btn.innerHTML = "▶ Play";
+      } else {
+        btn.innerHTML = "⏸ Pause";
+        startPlayInterval();
+      }
+    }
+
+    function startPlayInterval() {
+      if (playInterval) clearInterval(playInterval);
+      const speedMs = parseInt(document.getElementById("playSpeed").value, 10) || 400;
+      const slider = document.getElementById("yearSlider");
+      playInterval = setInterval(() => {
+        let next = parseInt(slider.value, 10) + 1;
+        if (next > parseInt(slider.max, 10)) next = parseInt(slider.min, 10);
+        slider.value = next;
+        onSliderInput(next);
+      }, speedMs);
+    }
+
+    function updatePlaySpeed() {
+      if (playInterval) {
+        startPlayInterval();
+      }
+    }
+  </script>
+</body>
+</html>
