@@ -12,6 +12,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- Mozilla PDF.js for Direct FamilySearch Family Group Record PDF Import -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+  </script>
+
   <style>
     body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }
     #map { height: 100%; width: 100%; z-index: 1; }
@@ -68,6 +76,13 @@
       </label>
       <button onclick="openPasteJsonModal()" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded font-semibold transition" title="Paste & merge JSON from FamilySearch or Gemini">
         📋 Paste JSON
+      </button>
+      <label class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded cursor-pointer transition" title="Directly import a FamilySearch Family Group Record PDF">
+        📄 Import FS PDF
+        <input type="file" id="importFsPdfFile" accept=".pdf,application/pdf" class="hidden" onchange="importFamilySearchPDF(event)" />
+      </label>
+      <button onclick="loadBurgerFamilyPreset()" class="bg-amber-500/90 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded transition" title="Load or merge Frederick Burger (KVG8-YVV) & Mabel Family Group">
+        🌲 Load Burger Family (KVG8-YVV)
       </button>
       <label class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-3 py-1.5 rounded cursor-pointer transition" title="Import standard GEDCOM (.ged) family tree">
         📜 Import GEDCOM
@@ -548,9 +563,14 @@ Rules:
       </div>
 
       <div class="flex items-center justify-between pt-1">
-        <button type="button" onclick="document.getElementById('pasteJsonTextarea').value = ''" class="text-slate-400 hover:text-white underline">
-          Clear Text
-        </button>
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="document.getElementById('pasteJsonTextarea').value = ''" class="text-slate-400 hover:text-white underline">
+            Clear Text
+          </button>
+          <button type="button" onclick="preloadBurgerFamilyIntoModal()" class="text-amber-400 hover:text-amber-300 font-semibold underline">
+            🌲 Load Burger Family (KVG8-YVV) JSON
+          </button>
+        </div>
         <div class="flex gap-2">
           <button type="button" onclick="toggleModal('pasteJsonModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded">
             Cancel
@@ -599,6 +619,112 @@ Rules:
         { id: "e15", personId: "p3", type: "Land Deed / Homestead", year: 1852, place: "Brigham City, Box Elder, Utah", lat: 41.5102, lng: -112.0155, transport: "Ox Wagon / Handcart", notes: "Settled just north of Ogden." }
       ]
     };
+
+    // =========================================================================
+    // 1B. BUILT-IN BURGER FAMILY GROUP (KVG8-YVV) PRESET DATASET
+    // =========================================================================
+    const BURGER_FAMILY_DATA = {
+      persons: [
+        { id: "p_KVG8-YVV", name: "Frederick Burger", fsId: "KVG8-YVV", birthYear: 1800, deathYear: 1871, branchColor: "#fb923c" },
+        { id: "p_KVG8-YKM", name: "Mabel", fsId: "KVG8-YKM", birthYear: 1806, deathYear: 1854, branchColor: "#f43f5e" },
+        { id: "p_KVLF-ZFX", name: "George Burger", fsId: "KVLF-ZFX", birthYear: 1829, deathYear: 1878, branchColor: "#38bdf8" },
+        { id: "p_ann_marvin", name: "Ann Jane Marvin", fsId: "KVG8-M01", birthYear: 1833, deathYear: 1860, branchColor: "#a855f7" },
+        { id: "p_phoebe_marvin", name: "Phoebe Jane Marvin", fsId: "KVG8-M02", birthYear: 1838, deathYear: 1905, branchColor: "#a855f7" },
+        { id: "p_william_burger", name: "William Burger", fsId: "KVG8-YWP", birthYear: 1832, deathYear: 1898, branchColor: "#34d399" },
+        { id: "p_jane_burger", name: "Jane Burger", fsId: "KVG8-YWZ", birthYear: 1835, deathYear: 1901, branchColor: "#34d399" },
+        { id: "p_sophia_burger", name: "Sophia Burger", fsId: "KVG8-YX4", birthYear: 1841, deathYear: 1912, branchColor: "#38bdf8" },
+        { id: "p_truman_bennett", name: "Truman W. Bennett", fsId: "KVG8-B01", birthYear: 1836, deathYear: 1908, branchColor: "#fb923c" }
+      ],
+      relationships: [
+        { id: "r_bf_1", person1Id: "p_KVG8-YVV", person2Id: "p_KVG8-YKM", type: "spouse" },
+        { id: "r_bf_2", person1Id: "p_KVG8-YVV", person2Id: "p_KVLF-ZFX", type: "parent" },
+        { id: "r_bf_3", person1Id: "p_KVG8-YKM", person2Id: "p_KVLF-ZFX", type: "parent" },
+        { id: "r_bf_4", person1Id: "p_KVG8-YVV", person2Id: "p_william_burger", type: "parent" },
+        { id: "r_bf_5", person1Id: "p_KVG8-YKM", person2Id: "p_william_burger", type: "parent" },
+        { id: "r_bf_6", person1Id: "p_KVG8-YVV", person2Id: "p_jane_burger", type: "parent" },
+        { id: "r_bf_7", person1Id: "p_KVG8-YKM", person2Id: "p_jane_burger", type: "parent" },
+        { id: "r_bf_8", person1Id: "p_KVG8-YVV", person2Id: "p_sophia_burger", type: "parent" },
+        { id: "r_bf_9", person1Id: "p_KVG8-YKM", person2Id: "p_sophia_burger", type: "parent" },
+        { id: "r_bf_10", person1Id: "p_KVLF-ZFX", person2Id: "p_ann_marvin", type: "spouse" },
+        { id: "r_bf_11", person1Id: "p_KVLF-ZFX", person2Id: "p_phoebe_marvin", type: "spouse" },
+        { id: "r_bf_12", person1Id: "p_sophia_burger", person2Id: "p_truman_bennett", type: "spouse" }
+      ],
+      events: [
+        // Frederick Burger (1800-1871)
+        { id: "e_bf_1", personId: "p_KVG8-YVV", type: "Birth", year: 1800, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Born in New York State (~1800 per 1850 & 1860 US Federal Census)." },
+        { id: "e_bf_2", personId: "p_KVG8-YVV", type: "Marriage", year: 1827, place: "New York, United States", lat: 42.8142, lng: -73.9396, transport: "Auto", notes: "Married Mabel in New York State." },
+        { id: "e_bf_3", personId: "p_KVG8-YVV", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated west from New York via Erie Canal & Great Lakes steamer to Waukesha County, Wisconsin." },
+        { id: "e_bf_4", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Federal Census: Marquette County, WI — Frederick Burger (50), Mabel (44), George (21), William (18), Jane (15), Sophia (9)." },
+        { id: "e_bf_5", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1860, place: "Green Lake County, Wisconsin, United States", lat: 43.8044, lng: -89.0437, transport: "Auto", notes: "1860 US Federal Census: Residing in Green Lake County, Wisconsin (partitioned from Marquette County in 1858)." },
+        { id: "e_bf_6", personId: "p_KVG8-YVV", type: "Death / Burial", year: 1871, place: "Marquette / Green Lake County, Wisconsin, United States", lat: 43.7950, lng: -89.1350, transport: "Auto", notes: "Died in central Wisconsin (1871)." },
+
+        // Mabel (1806-1854)
+        { id: "e_bf_7", personId: "p_KVG8-YKM", type: "Birth", year: 1806, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Born in New York State (~1806 per 1850 US Census)." },
+        { id: "e_bf_8", personId: "p_KVG8-YKM", type: "Marriage", year: 1827, place: "New York, United States", lat: 42.8142, lng: -73.9396, transport: "Auto", notes: "Married Frederick Burger (KVG8-YVV) in New York." },
+        { id: "e_bf_9", personId: "p_KVG8-YKM", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Traveled west from New York to Wisconsin Territory with husband Frederick and children." },
+        { id: "e_bf_10", personId: "p_KVG8-YKM", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin." },
+        { id: "e_bf_11", personId: "p_KVG8-YKM", type: "Death / Burial", year: 1854, place: "Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Passed away in Marquette/Green Lake County, Wisconsin (1854)." },
+
+        // George Burger (KVLF-ZFX, 1829-1878)
+        { id: "e_bf_12", personId: "p_KVLF-ZFX", type: "Birth", year: 1829, place: "New York, United States", lat: 42.8864, lng: -76.9000, transport: "Auto", notes: "Eldest son of Frederick & Mabel Burger, born in New York (1829)." },
+        { id: "e_bf_13", personId: "p_KVLF-ZFX", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "1878 Obituary Note: Came with his parents from New York to Waukesha County, Wisconsin, before settling in Marquette/Green Lake County." },
+        { id: "e_bf_14", personId: "p_KVLF-ZFX", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 21, farmer)." },
+        { id: "e_bf_15", personId: "p_KVLF-ZFX", type: "Marriage", year: 1853, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8350, lng: -88.9600, transport: "Auto", notes: "Married first wife Ann Jane Marvin in Wisconsin." },
+        { id: "e_bf_16", personId: "p_KVLF-ZFX", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Married second wife Phoebe Jane Marvin after Ann Jane's passing." },
+        { id: "e_bf_17", personId: "p_KVLF-ZFX", type: "Residence / Census", year: 1870, place: "Winnebago / Green Lake County, Wisconsin", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1870 US Census: Residing with Phoebe Jane in the Green Lake / Winnebago region of Wisconsin." },
+        { id: "e_bf_18", personId: "p_KVLF-ZFX", type: "Death / Burial", year: 1878, place: "Berlin / Green Lake & Winnebago County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Detailed his pioneer journey from New York to Waukesha, Marquette, Green Lake, and Winnebago Counties, WI; survived by widow Phoebe Jane Marvin and siblings William, Jane, and Sophia (Truman W. Bennett)." },
+
+        // Ann Jane Marvin (1833-1860)
+        { id: "e_bf_19", personId: "p_ann_marvin", type: "Birth", year: 1833, place: "New York, United States", lat: 42.9000, lng: -76.5000, transport: "Auto", notes: "Born in New York prior to moving west to Wisconsin." },
+        { id: "e_bf_20", personId: "p_ann_marvin", type: "Marriage", year: 1853, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8350, lng: -88.9600, transport: "Auto", notes: "First wife of George Burger (KVLF-ZFX)." },
+        { id: "e_bf_21", personId: "p_ann_marvin", type: "Death / Burial", year: 1860, place: "Green Lake County, Wisconsin, United States", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Died in Green Lake County, Wisconsin." },
+
+        // Phoebe Jane Marvin (1838-1905)
+        { id: "e_bf_22", personId: "p_phoebe_marvin", type: "Birth", year: 1838, place: "New York, United States", lat: 42.9000, lng: -76.5000, transport: "Auto", notes: "Born in New York." },
+        { id: "e_bf_23", personId: "p_phoebe_marvin", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Second wife of George Burger (KVLF-ZFX)." },
+        { id: "e_bf_24", personId: "p_phoebe_marvin", type: "Residence / Census", year: 1878, place: "Berlin / Winnebago & Green Lake County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Surviving widow of George Burger." },
+
+        // William Burger (1832-1898)
+        { id: "e_bf_25", personId: "p_william_burger", type: "Birth", year: 1832, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Son of Frederick & Mabel Burger, born in New York." },
+        { id: "e_bf_26", personId: "p_william_burger", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated from New York to Wisconsin with parents." },
+        { id: "e_bf_27", personId: "p_william_burger", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 18)." },
+        { id: "e_bf_28", personId: "p_william_burger", type: "Residence / Census", year: 1878, place: "Green Lake County, Wisconsin, United States", lat: 43.8044, lng: -89.0437, transport: "Auto", notes: "Mentioned in brother George Burger's 1878 obituary." },
+
+        // Jane Burger (1835-1901)
+        { id: "e_bf_29", personId: "p_jane_burger", type: "Birth", year: 1835, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Daughter of Frederick & Mabel Burger, born in New York." },
+        { id: "e_bf_30", personId: "p_jane_burger", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated west with Burger family from New York to Wisconsin." },
+        { id: "e_bf_31", personId: "p_jane_burger", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 15)." },
+
+        // Sophia Burger (1841-1912)
+        { id: "e_bf_32", personId: "p_sophia_burger", type: "Birth", year: 1841, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Youngest daughter of Frederick & Mabel Burger, born in New York." },
+        { id: "e_bf_33", personId: "p_sophia_burger", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Traveled with parents from New York to Wisconsin at age 5." },
+        { id: "e_bf_34", personId: "p_sophia_burger", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 9)." },
+        { id: "e_bf_35", personId: "p_sophia_burger", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Truman W. Bennett in Wisconsin." },
+        { id: "e_bf_36", personId: "p_sophia_burger", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1878 Obituary Note: Referenced alongside husband Truman W. Bennett in Winnebago/Green Lake County." },
+
+        // Truman W. Bennett (1836-1908)
+        { id: "e_bf_37", personId: "p_truman_bennett", type: "Birth", year: 1836, place: "New York, United States", lat: 42.7500, lng: -75.5000, transport: "Auto", notes: "Born in New York prior to settling in Wisconsin." },
+        { id: "e_bf_38", personId: "p_truman_bennett", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Sophia Burger in central Wisconsin." },
+        { id: "e_bf_39", personId: "p_truman_bennett", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "Resided in Winnebago/Green Lake County, Wisconsin with wife Sophia (Burger) Bennett." }
+      ]
+    };
+
+    async function loadBurgerFamilyPreset() {
+      const shouldMerge = confirm(
+        "Load Frederick Burger (KVG8-YVV) & Mabel Family Group (9 ancestors, 39 New York → Wisconsin waypoints & 1878 obituary notes):\n\n• Click OK to MERGE into your current tree\n• Click Cancel to REPLACE your current tree with the Burger Family Group"
+      );
+      const clone = JSON.parse(JSON.stringify(BURGER_FAMILY_DATA));
+      await applyImportedDataset(clone, shouldMerge ? "merge" : "replace");
+      document.getElementById("yearSlider").value = 1850;
+      onSliderInput(1850);
+      fitAllMarkers();
+    }
+
+    function preloadBurgerFamilyIntoModal() {
+      document.getElementById("pasteJsonTextarea").value = JSON.stringify(BURGER_FAMILY_DATA, null, 2);
+      const statusEl = document.getElementById("pasteModalFileStatus");
+      if (statusEl) statusEl.textContent = "🌲 Loaded Burger Family (KVG8-YVV) preset — Click Import / Merge below!";
+    }
 
     // =========================================================================
     // 2. STATE & INITIALIZATION
@@ -1631,6 +1757,22 @@ Rules:
       "kansas": { lat: 39.0473, lng: -95.6752 },
       "michigan": { lat: 42.7325, lng: -84.5555 },
       "wisconsin": { lat: 43.0731, lng: -89.4012 },
+      "marquette, wisconsin": { lat: 43.7950, lng: -89.1350 },
+      "marquette county": { lat: 43.7950, lng: -89.1350 },
+      "green lake, wisconsin": { lat: 43.8441, lng: -88.9598 },
+      "green lake county": { lat: 43.8441, lng: -88.9598 },
+      "brooklyn, green lake, wisconsin": { lat: 43.8441, lng: -88.9598 },
+      "berlin, green lake, wisconsin": { lat: 43.9680, lng: -88.9434 },
+      "princeton, green lake, wisconsin": { lat: 43.8516, lng: -89.1215 },
+      "waukesha, wisconsin": { lat: 43.0117, lng: -88.2315 },
+      "waukesha county": { lat: 43.0117, lng: -88.2315 },
+      "winnebago, wisconsin": { lat: 44.0247, lng: -88.5426 },
+      "winnebago county": { lat: 44.0247, lng: -88.5426 },
+      "oshkosh, winnebago, wisconsin": { lat: 44.0247, lng: -88.5426 },
+      "ripon, fond du lac, wisconsin": { lat: 43.8422, lng: -88.8359 },
+      "fond du lac, wisconsin": { lat: 43.7730, lng: -88.4471 },
+      "montello, marquette, wisconsin": { lat: 43.7928, lng: -89.3293 },
+      "milwaukee": { lat: 43.0389, lng: -87.9065 },
       "minnesota": { lat: 44.9537, lng: -93.0900 },
       "utah": { lat: 40.7608, lng: -111.8910 },
       "salt lake city": { lat: 40.7608, lng: -111.8910 },
@@ -1726,6 +1868,387 @@ Rules:
       }
       const fallback = lookupFastGazetteer(placeStr);
       return fallback;
+    }
+
+    // =========================================================================
+    // 6B. DIRECT FAMILYSEARCH FAMILY GROUP RECORD PDF IMPORTER (Mozilla PDF.js)
+    // =========================================================================
+    async function importFamilySearchPDF(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      event.target.value = "";
+
+      if (!window.pdfjsLib) {
+        alert("Mozilla PDF.js library is still loading. Please check your internet connection and try again.");
+        return;
+      }
+
+      const banner = document.getElementById("gedcomProgressBanner");
+      const textEl = document.getElementById("gedcomProgressText");
+      banner.classList.remove("hidden");
+      textEl.textContent = `Reading FamilySearch PDF "${file.name}"...`;
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const allLines = [];
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          textEl.textContent = `Extracting text from PDF page ${pageNum} of ${pdf.numPages}...`;
+          const page = await pdf.getPage(pageNum);
+          const content = await page.getTextContent();
+
+          // Group PDF text items by visual row (Y coordinate) and sort left-to-right (X coordinate)
+          const rows = [];
+          content.items.forEach((item) => {
+            const str = (item.str || "").trim();
+            if (!str) return;
+            const x = item.transform ? item.transform[4] : 0;
+            const y = item.transform ? item.transform[5] : 0;
+            let row = rows.find((r) => Math.abs(r.y - y) <= 4.0);
+            if (!row) {
+              row = { y, items: [] };
+              rows.push(row);
+            }
+            row.items.push({ x, str });
+          });
+
+          rows.sort((a, b) => b.y - a.y);
+          rows.forEach((r) => {
+            r.items.sort((a, b) => a.x - b.x);
+            const lineStr = r.items.map((i) => i.str).join(" ").replace(/\s+/g, " ").trim();
+            if (lineStr) allLines.push(lineStr);
+          });
+        }
+
+        banner.classList.add("hidden");
+
+        const fullText = allLines.join("\n");
+        const parsed = parseFamilySearchGroupRecordText(allLines, fullText);
+
+        if (!parsed || parsed.persons.length === 0) {
+          alert("Could not detect FamilySearch Family Group Record blocks in this PDF. Try using the Paste JSON modal.");
+          return;
+        }
+
+        const shouldMerge = confirm(
+          `Extracted ${parsed.persons.length} ancestors, ${parsed.events.length} waypoints, and ${parsed.relationships.length} relationships from "${file.name}".\n\n• Click OK to MERGE into current tree (deduplicate by fsId or name+birthYear)\n• Click Cancel to REPLACE entire dataset`
+        );
+
+        await applyImportedDataset(parsed, shouldMerge ? "merge" : "replace");
+      } catch (err) {
+        banner.classList.add("hidden");
+        console.error("FamilySearch PDF parse error:", err);
+        alert("Error reading FamilySearch PDF file. Make sure it is a text-based PDF.");
+      }
+    }
+
+    function parseFamilySearchGroupRecordText(lines, fullText) {
+      const COLORS = ["#fb923c", "#f43f5e", "#38bdf8", "#34d399", "#a855f7"];
+      let colorIdx = 0;
+
+      const personsMap = new Map(); // key: fsId or normalized name -> person obj
+      const events = [];
+      const relationships = [];
+
+      function getOrCreatePerson(rawName, rawFsId, roleHint = "") {
+        const cleanName = (rawName || "")
+          .replace(/\b(Husband|Wife|Child|Children|Father|Mother|Spouse|Other Spouses|Name)\b:?/gi, "")
+          .replace(/^\d+\s+[MF]\s+/i, "")
+          .replace(/\([A-Z0-9]{4}-[A-Z0-9]{3,4}\)/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        const fsId = (rawFsId || "").trim().toUpperCase();
+        if (!cleanName && !fsId) return null;
+
+        const key = fsId || cleanName.toLowerCase();
+        if (personsMap.has(key)) {
+          const existing = personsMap.get(key);
+          if (cleanName && (existing.name === "Unknown" || cleanName.length > existing.name.length)) {
+            existing.name = cleanName;
+          }
+          if (fsId && !existing.fsId) existing.fsId = fsId;
+          return existing;
+        }
+
+        // Also check if another entry has the same name
+        if (fsId && cleanName) {
+          for (const p of personsMap.values()) {
+            if (!p.fsId && p.name.toLowerCase() === cleanName.toLowerCase()) {
+              p.fsId = fsId;
+              personsMap.set(fsId, p);
+              return p;
+            }
+          }
+        }
+
+        const id = fsId ? `p_${fsId}` : `p_pdf_${personsMap.size + 1}_${Date.now()}`;
+        const newP = {
+          id,
+          name: cleanName || fsId,
+          fsId: fsId || "",
+          birthYear: null,
+          deathYear: null,
+          branchColor: COLORS[colorIdx % COLORS.length],
+          roleHint,
+          rawNotes: []
+        };
+        colorIdx++;
+        personsMap.set(key, newP);
+        return newP;
+      }
+
+      function extractYearAndPlace(rawLine) {
+        if (!rawLine) return { year: null, place: "" };
+        const cleaned = rawLine
+          .replace(/^(Birth|Christening|Marriage|Death|Burial|Residence|Event)\b:?/i, "")
+          .trim();
+        const yrMatch = cleaned.match(/\b(1[5-9]\d{2}|20\d{2})\b/);
+        const year = yrMatch ? parseInt(yrMatch[1], 10) : null;
+
+        // Strip common date patterns (e.g., "12 May 1829", "about 1800", "Bef 1854", "1800") to isolate place
+        let place = cleaned
+          .replace(/\b(about|abt\.?|circa|ca\.?|before|bef\.?|after|aft\.?|from|between|bet\.?)\b/gi, "")
+          .replace(/\b\d{1,2}\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}\b/gi, "")
+          .replace(/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}\b/gi, "")
+          .replace(/\b(1[5-9]\d{2}|20\d{2})\b/g, "")
+          .replace(/^[\s,.;:-]+|[\s,.;:-]+$/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        return { year, place };
+      }
+
+      function addEventForPerson(person, type, year, place, notes = "") {
+        if (!person) return;
+        if (type === "Birth" && year && !person.birthYear) person.birthYear = year;
+        if ((type === "Death / Burial" || type === "Death" || type === "Burial") && year && !person.deathYear) {
+          person.deathYear = year;
+        }
+        if (!year && !place) return;
+
+        const effectiveYear = year || person.birthYear || 1850;
+        const effectivePlace = place || "New York / Wisconsin, United States";
+        const fast = lookupFastGazetteer(effectivePlace);
+
+        events.push({
+          id: `e_pdf_${person.id}_${events.length + 1}`,
+          personId: person.id,
+          type: type === "Death" || type === "Burial" ? "Death / Burial" : type,
+          year: effectiveYear,
+          place: effectivePlace,
+          lat: fast ? fast.lat : NaN,
+          lng: fast ? fast.lng : NaN,
+          transport: "Auto",
+          notes: notes || `Extracted from FamilySearch Family Group Record`,
+          needsGeocode: !fast
+        });
+      }
+
+      let currentSection = "MAIN"; // HUSBAND, WIFE, CHILD, SOURCES
+      let currentPerson = null;
+      let husbandPerson = null;
+      let wifePerson = null;
+      let pendingMarriage = null;
+      let pendingTag = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Detect transition into Sources / Notes pages
+        if (/^(Sources|Notes|SOURCES|NOTES)\b/.test(line)) {
+          currentSection = "SOURCES";
+          pendingTag = null;
+          continue;
+        }
+
+        if (currentSection === "SOURCES") {
+          // Check if line headers a specific person in Sources section
+          const idMatch = line.match(/([A-Za-z.\s'-]{2,40}?)\s*\(([A-Z0-9]{4}-[A-Z0-9]{3,4})\)/);
+          if (idMatch) {
+            const found = getOrCreatePerson(idMatch[1], idMatch[2]);
+            if (found) currentPerson = found;
+          } else {
+            for (const p of personsMap.values()) {
+              if (p.name && p.name.length > 3 && line.toLowerCase().includes(p.name.toLowerCase())) {
+                currentPerson = p;
+                break;
+              }
+            }
+          }
+
+          // Check for Census or Obituary mentions in Sources/Notes
+          const censusMatch = line.match(/\b(18[0-9]{2}|19[0-4][0-9])\b.*?\b(Census|Obituary|obituary|Residence)\b|\b(Census|Obituary|obituary)\b.*?\b(18[0-9]{2}|19[0-4][0-9])\b/i);
+          if (censusMatch && currentPerson) {
+            const yr = parseInt(censusMatch[1] || censusMatch[4], 10);
+            const placeHintMatch = line.match(/\b([A-Z][a-zA-Z\s]+,\s*(?:Wisconsin|New York|Ohio|Illinois|Michigan|Iowa|Minnesota|Indiana|Pennsylvania|Vermont|Massachusetts)[a-zA-Z,\s]*)/);
+            const placeStr = placeHintMatch ? placeHintMatch[1].trim() : "";
+            currentPerson.rawNotes.push(line);
+            if (yr && placeStr) {
+              addEventForPerson(currentPerson, "Residence / Census", yr, placeStr, line);
+            }
+          } else if (currentPerson && /\b(obituary|came to wisconsin|settled in|marquette|green lake|waukesha|winnebago)\b/i.test(line)) {
+            currentPerson.rawNotes.push(line);
+          }
+          continue;
+        }
+
+        // Detect Husband / Wife / Children headers
+        if (/^Husband\b/i.test(line)) {
+          currentSection = "HUSBAND";
+          pendingTag = null;
+          const idMatch = line.match(/([A-Za-z.\s'-]+?)\s*\(([A-Z0-9]{4}-[A-Z0-9]{3,4})\)/);
+          if (idMatch) {
+            currentPerson = getOrCreatePerson(idMatch[1], idMatch[2], "Husband");
+            husbandPerson = currentPerson;
+          }
+          continue;
+        }
+        if (/^Wife\b/i.test(line)) {
+          currentSection = "WIFE";
+          pendingTag = null;
+          const idMatch = line.match(/([A-Za-z.\s'-]+?)\s*\(([A-Z0-9]{4}-[A-Z0-9]{3,4})\)/);
+          if (idMatch) {
+            currentPerson = getOrCreatePerson(idMatch[1], idMatch[2], "Wife");
+            wifePerson = currentPerson;
+          }
+          continue;
+        }
+        if (/^Children\b/i.test(line)) {
+          currentSection = "CHILD";
+          pendingTag = null;
+          continue;
+        }
+
+        // Detect numbered Child header or Name line with FamilySearch ID
+        const childRowMatch = line.match(/^(\d+)\s+([MF])\s+(?:Name\s+)?(.+)$/i);
+        if (childRowMatch) {
+          currentSection = "CHILD";
+          const rest = childRowMatch[3];
+          const idMatch = rest.match(/([A-Za-z.\s'-]+?)\s*\(([A-Z0-9]{4}-[A-Z0-9]{3,4})\)/);
+          currentPerson = idMatch
+            ? getOrCreatePerson(idMatch[1], idMatch[2], "Child")
+            : getOrCreatePerson(rest, "", "Child");
+          if (currentPerson) {
+            if (husbandPerson) relationships.push({ id: `r_pdf_${relationships.length + 1}`, person1Id: husbandPerson.id, person2Id: currentPerson.id, type: "parent" });
+            if (wifePerson) relationships.push({ id: `r_pdf_${relationships.length + 1}`, person1Id: wifePerson.id, person2Id: currentPerson.id, type: "parent" });
+          }
+          continue;
+        }
+
+        const nameLineMatch = line.match(/^Name\s+(.+)$/i);
+        if (nameLineMatch) {
+          const rest = nameLineMatch[1].trim();
+          const idMatch = rest.match(/([A-Za-z.\s'-]+?)\s*\(([A-Z0-9]{4}-[A-Z0-9]{3,4})\)/);
+          const p = idMatch
+            ? getOrCreatePerson(idMatch[1], idMatch[2], currentSection)
+            : getOrCreatePerson(rest, "", currentSection);
+          if (p) {
+            currentPerson = p;
+            if (currentSection === "HUSBAND") husbandPerson = p;
+            else if (currentSection === "WIFE") {
+              wifePerson = p;
+              if (husbandPerson) {
+                relationships.push({ id: `r_pdf_sp_hw`, person1Id: husbandPerson.id, person2Id: wifePerson.id, type: "spouse" });
+              }
+            } else if (currentSection === "CHILD") {
+              if (husbandPerson) relationships.push({ id: `r_pdf_${relationships.length + 1}`, person1Id: husbandPerson.id, person2Id: p.id, type: "parent" });
+              if (wifePerson) relationships.push({ id: `r_pdf_${relationships.length + 1}`, person1Id: wifePerson.id, person2Id: p.id, type: "parent" });
+            }
+          }
+          continue;
+        }
+
+        // Handle Spouse / Other Spouses lines
+        const spouseLineMatch = line.match(/^(?:Other\s+Spouses?|Spouse)\b:?\s*(.*)$/i);
+        if (spouseLineMatch && currentPerson) {
+          const rest = spouseLineMatch[1].trim();
+          if (rest) {
+            const regex = /([A-Za-z.\s'-]+?)\s*(?:\(([A-Z0-9]{4}-[A-Z0-9]{3,4})\))?(?:,|;|$)/g;
+            let m;
+            while ((m = regex.exec(rest)) !== null) {
+              const spName = (m[1] || "").trim();
+              const spId = (m[2] || "").trim();
+              if (spName && spName.length > 2) {
+                const spPerson = getOrCreatePerson(spName, spId, "Spouse");
+                if (spPerson && spPerson.id !== currentPerson.id) {
+                  relationships.push({
+                    id: `r_pdf_sp_${relationships.length + 1}`,
+                    person1Id: currentPerson.id,
+                    person2Id: spPerson.id,
+                    type: "spouse"
+                  });
+                }
+              }
+            }
+          }
+          continue;
+        }
+
+        // Handle Vitals / Event lines (Birth, Christening, Marriage, Death, Burial)
+        const eventLineMatch = line.match(/^(Birth|Christening|Marriage|Death|Burial)\b:?\s*(.*)$/i);
+        if (eventLineMatch && currentPerson) {
+          const rawTag = eventLineMatch[1];
+          const rest = eventLineMatch[2].trim();
+          const normType =
+            /birth/i.test(rawTag) ? "Birth" :
+            /christening/i.test(rawTag) ? "Christening" :
+            /marriage/i.test(rawTag) ? "Marriage" : "Death / Burial";
+
+          if (rest) {
+            const { year, place } = extractYearAndPlace(rest);
+            addEventForPerson(currentPerson, normType, year, place);
+            if (normType === "Marriage" && currentSection === "HUSBAND") {
+              pendingMarriage = { year, place };
+            }
+          } else {
+            pendingTag = normType;
+          }
+          continue;
+        }
+
+        if (pendingTag && currentPerson) {
+          const { year, place } = extractYearAndPlace(line);
+          if (year || place) {
+            addEventForPerson(currentPerson, pendingTag, year, place);
+          }
+          pendingTag = null;
+        }
+      }
+
+      // Copy Husband's marriage event to Wife if Wife has none
+      if (pendingMarriage && wifePerson) {
+        const wifeHasMarr = events.some((e) => e.personId === wifePerson.id && e.type === "Marriage");
+        if (!wifeHasMarr && (pendingMarriage.year || pendingMarriage.place)) {
+          addEventForPerson(wifePerson, "Marriage", pendingMarriage.year, pendingMarriage.place);
+        }
+      }
+
+      // Finalize birth/death years and attach collected source/obituary notes
+      const finalPersons = [];
+      for (const p of personsMap.values()) {
+        const pEvents = events.filter((e) => e.personId === p.id);
+        const years = pEvents.map((e) => e.year).filter(Boolean);
+        if (!p.birthYear) {
+          p.birthYear = years.length > 0 ? Math.min(...years) : 1810;
+        }
+        if (!p.deathYear) {
+          p.deathYear = years.length > 1 ? Math.max(...years, p.birthYear + 60) : p.birthYear + 70;
+        }
+        if (p.rawNotes.length > 0 && pEvents.length > 0) {
+          const combinedNotes = p.rawNotes.slice(0, 3).join(" • ");
+          pEvents[pEvents.length - 1].notes = combinedNotes;
+        }
+        // Ensure every parsed person has at least one waypoint so they appear on the map
+        if (pEvents.length === 0) {
+          addEventForPerson(p, "Birth", p.birthYear, "New York, United States", "Estimated from Family Group Record");
+        }
+        delete p.roleHint;
+        delete p.rawNotes;
+        finalPersons.push(p);
+      }
+
+      return { persons: finalPersons, relationships, events };
     }
 
     function importGEDCOM(event) {
