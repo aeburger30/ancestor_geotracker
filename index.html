@@ -175,6 +175,10 @@
             <span>Show Future Migration Trails</span>
             <input type="checkbox" id="toggleFuturePaths" checked onchange="updateMapForYear()" class="accent-amber-400" />
           </label>
+          <label class="flex items-center justify-between cursor-pointer">
+            <span class="text-amber-300 font-medium">🛤️ Historical Trails Overlay</span>
+            <input type="checkbox" id="toggleHistTrails" checked onchange="updateMapForYear()" class="accent-amber-400" />
+          </label>
           <div class="pt-1 flex items-center justify-between">
             <span class="text-slate-400">Map Style:</span>
             <select id="basemapSelect" onchange="changeBasemap(this.value)" class="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-[11px] text-slate-200">
@@ -626,92 +630,188 @@ Rules:
     const BURGER_FAMILY_DATA = {
       persons: [
         { id: "p_KVG8-YVV", name: "Frederick Burger", fsId: "KVG8-YVV", birthYear: 1800, deathYear: 1871, branchColor: "#fb923c" },
-        { id: "p_KVG8-YKM", name: "Mabel", fsId: "KVG8-YKM", birthYear: 1806, deathYear: 1854, branchColor: "#f43f5e" },
-        { id: "p_KVLF-ZFX", name: "George Burger", fsId: "KVLF-ZFX", birthYear: 1829, deathYear: 1878, branchColor: "#38bdf8" },
+        { id: "p_GSRP-RWT", name: "Mabel", fsId: "GSRP-RWT", birthYear: 1806, deathYear: 1854, branchColor: "#f43f5e" },
+        { id: "p_MCLH-1Q2", name: "George Burger", fsId: "MCLH-1Q2", birthYear: 1829, deathYear: 1878, branchColor: "#38bdf8" },
         { id: "p_ann_marvin", name: "Ann Jane Marvin", fsId: "KVG8-M01", birthYear: 1833, deathYear: 1860, branchColor: "#a855f7" },
         { id: "p_phoebe_marvin", name: "Phoebe Jane Marvin", fsId: "KVG8-M02", birthYear: 1838, deathYear: 1905, branchColor: "#a855f7" },
         { id: "p_william_burger", name: "William Burger", fsId: "KVG8-YWP", birthYear: 1832, deathYear: 1898, branchColor: "#34d399" },
-        { id: "p_jane_burger", name: "Jane Burger", fsId: "KVG8-YWZ", birthYear: 1835, deathYear: 1901, branchColor: "#34d399" },
-        { id: "p_sophia_burger", name: "Sophia Burger", fsId: "KVG8-YX4", birthYear: 1841, deathYear: 1912, branchColor: "#38bdf8" },
+        { id: "p_GSPD-4TX", name: "Jane Burger", fsId: "GSPD-4TX", birthYear: 1835, deathYear: 1901, branchColor: "#34d399" },
+        { id: "p_GSP8-5DZ", name: "Sophia Burger", fsId: "GSP8-5DZ", birthYear: 1841, deathYear: 1912, branchColor: "#38bdf8" },
         { id: "p_truman_bennett", name: "Truman W. Bennett", fsId: "KVG8-B01", birthYear: 1836, deathYear: 1908, branchColor: "#fb923c" }
       ],
       relationships: [
-        { id: "r_bf_1", person1Id: "p_KVG8-YVV", person2Id: "p_KVG8-YKM", type: "spouse" },
-        { id: "r_bf_2", person1Id: "p_KVG8-YVV", person2Id: "p_KVLF-ZFX", type: "parent" },
-        { id: "r_bf_3", person1Id: "p_KVG8-YKM", person2Id: "p_KVLF-ZFX", type: "parent" },
+        { id: "r_bf_1", person1Id: "p_KVG8-YVV", person2Id: "p_GSRP-RWT", type: "spouse" },
+        { id: "r_bf_2", person1Id: "p_KVG8-YVV", person2Id: "p_MCLH-1Q2", type: "parent" },
+        { id: "r_bf_3", person1Id: "p_GSRP-RWT", person2Id: "p_MCLH-1Q2", type: "parent" },
         { id: "r_bf_4", person1Id: "p_KVG8-YVV", person2Id: "p_william_burger", type: "parent" },
-        { id: "r_bf_5", person1Id: "p_KVG8-YKM", person2Id: "p_william_burger", type: "parent" },
-        { id: "r_bf_6", person1Id: "p_KVG8-YVV", person2Id: "p_jane_burger", type: "parent" },
-        { id: "r_bf_7", person1Id: "p_KVG8-YKM", person2Id: "p_jane_burger", type: "parent" },
-        { id: "r_bf_8", person1Id: "p_KVG8-YVV", person2Id: "p_sophia_burger", type: "parent" },
-        { id: "r_bf_9", person1Id: "p_KVG8-YKM", person2Id: "p_sophia_burger", type: "parent" },
-        { id: "r_bf_10", person1Id: "p_KVLF-ZFX", person2Id: "p_ann_marvin", type: "spouse" },
-        { id: "r_bf_11", person1Id: "p_KVLF-ZFX", person2Id: "p_phoebe_marvin", type: "spouse" },
-        { id: "r_bf_12", person1Id: "p_sophia_burger", person2Id: "p_truman_bennett", type: "spouse" }
+        { id: "r_bf_5", person1Id: "p_GSRP-RWT", person2Id: "p_william_burger", type: "parent" },
+        { id: "r_bf_6", person1Id: "p_KVG8-YVV", person2Id: "p_GSPD-4TX", type: "parent" },
+        { id: "r_bf_7", person1Id: "p_GSRP-RWT", person2Id: "p_GSPD-4TX", type: "parent" },
+        { id: "r_bf_8", person1Id: "p_KVG8-YVV", person2Id: "p_GSP8-5DZ", type: "parent" },
+        { id: "r_bf_9", person1Id: "p_GSRP-RWT", person2Id: "p_GSP8-5DZ", type: "parent" },
+        { id: "r_bf_10", person1Id: "p_MCLH-1Q2", person2Id: "p_ann_marvin", type: "spouse" },
+        { id: "r_bf_11", person1Id: "p_MCLH-1Q2", person2Id: "p_phoebe_marvin", type: "spouse" },
+        { id: "r_bf_12", person1Id: "p_GSP8-5DZ", person2Id: "p_truman_bennett", type: "spouse" }
       ],
       events: [
-        // Frederick Burger (1800-1871)
-        { id: "e_bf_1", personId: "p_KVG8-YVV", type: "Birth", year: 1800, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Born in New York State (~1800 per 1850 & 1860 US Federal Census)." },
-        { id: "e_bf_2", personId: "p_KVG8-YVV", type: "Marriage", year: 1827, place: "New York, United States", lat: 42.8142, lng: -73.9396, transport: "Auto", notes: "Married Mabel in New York State." },
-        { id: "e_bf_3", personId: "p_KVG8-YVV", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated west from New York via Erie Canal & Great Lakes steamer to Waukesha County, Wisconsin." },
-        { id: "e_bf_4", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Federal Census: Marquette County, WI — Frederick Burger (50), Mabel (44), George (21), William (18), Jane (15), Sophia (9)." },
-        { id: "e_bf_5", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1860, place: "Green Lake County, Wisconsin, United States", lat: 43.8044, lng: -89.0437, transport: "Auto", notes: "1860 US Federal Census: Residing in Green Lake County, Wisconsin (partitioned from Marquette County in 1858)." },
-        { id: "e_bf_6", personId: "p_KVG8-YVV", type: "Death / Burial", year: 1871, place: "Marquette / Green Lake County, Wisconsin, United States", lat: 43.7950, lng: -89.1350, transport: "Auto", notes: "Died in central Wisconsin (1871)." },
+        // Frederick Burger (KVG8-YVV, 1800-1871): Kortright, Delaware Co., NY -> Chenango Co., NY (1830-1850) -> Wisconsin (1852-1871)
+        { id: "e_bf_1", personId: "p_KVG8-YVV", type: "Birth", year: 1800, place: "Kortright, Delaware, New York", lat: 42.3409, lng: -74.8002, transport: "Auto", notes: "Born in Delaware/Hudson Valley region of New York (~1800)." },
+        { id: "e_bf_2", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1830, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Stagecoach / Turnpike", notes: "1830 US Federal Census: Moved west along the Catskill Turnpike into Chenango County, New York." },
+        { id: "e_bf_3", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1840, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1840 US Federal Census in Chenango County, New York (Source: ark:/61903/1:1:XHTQ-NJK)." },
+        { id: "e_bf_4", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, NY prior to the family's 1852–1854 migration to Wisconsin." },
+        { id: "e_bf_5", personId: "p_KVG8-YVV", type: "Arrival", year: 1852, place: "Waukesha / Marquette County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated west from Chenango County, NY via the Erie Canal & Great Lakes steamer to Wisconsin (1852–1854)." },
+        { id: "e_bf_6", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1860, place: "Brooklyn, Green Lake (formerly Marquette) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1860 US Federal Census: Residing in Green Lake County, Wisconsin (partitioned from Marquette County in 1858)." },
+        { id: "e_bf_7", personId: "p_KVG8-YVV", type: "Death / Burial", year: 1871, place: "Marquette / Green Lake County, Wisconsin, United States", lat: 43.7950, lng: -89.1350, transport: "Auto", notes: "Died in Marquette / Green Lake County, Wisconsin (1871)." },
 
-        // Mabel (1806-1854)
-        { id: "e_bf_7", personId: "p_KVG8-YKM", type: "Birth", year: 1806, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Born in New York State (~1806 per 1850 US Census)." },
-        { id: "e_bf_8", personId: "p_KVG8-YKM", type: "Marriage", year: 1827, place: "New York, United States", lat: 42.8142, lng: -73.9396, transport: "Auto", notes: "Married Frederick Burger (KVG8-YVV) in New York." },
-        { id: "e_bf_9", personId: "p_KVG8-YKM", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Traveled west from New York to Wisconsin Territory with husband Frederick and children." },
-        { id: "e_bf_10", personId: "p_KVG8-YKM", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin." },
-        { id: "e_bf_11", personId: "p_KVG8-YKM", type: "Death / Burial", year: 1854, place: "Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Passed away in Marquette/Green Lake County, Wisconsin (1854)." },
+        // Mabel (GSRP-RWT, 1806-1854)
+        { id: "e_bf_8", personId: "p_GSRP-RWT", type: "Birth", year: 1806, place: "Kortright, Delaware, New York", lat: 42.3409, lng: -74.8002, transport: "Auto", notes: "Born in New York (~1806, FamilySearch ID: GSRP-RWT)." },
+        { id: "e_bf_9", personId: "p_GSRP-RWT", type: "Residence / Census", year: 1830, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Stagecoach / Turnpike", notes: "Resided with husband Frederick Burger in Chenango County, New York." },
+        { id: "e_bf_10", personId: "p_GSRP-RWT", type: "Residence / Census", year: 1840, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1840 US Federal Census: Chenango County, New York (ark:/61903/1:1:XHTQ-NJK)." },
+        { id: "e_bf_11", personId: "p_GSRP-RWT", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, New York with Frederick and children." },
+        { id: "e_bf_12", personId: "p_GSRP-RWT", type: "Death / Burial", year: 1854, place: "Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Passed away in Marquette/Green Lake County, Wisconsin shortly after the 1852–1854 migration west." },
 
-        // George Burger (KVLF-ZFX, 1829-1878)
-        { id: "e_bf_12", personId: "p_KVLF-ZFX", type: "Birth", year: 1829, place: "New York, United States", lat: 42.8864, lng: -76.9000, transport: "Auto", notes: "Eldest son of Frederick & Mabel Burger, born in New York (1829)." },
-        { id: "e_bf_13", personId: "p_KVLF-ZFX", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "1878 Obituary Note: Came with his parents from New York to Waukesha County, Wisconsin, before settling in Marquette/Green Lake County." },
-        { id: "e_bf_14", personId: "p_KVLF-ZFX", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 21, farmer)." },
-        { id: "e_bf_15", personId: "p_KVLF-ZFX", type: "Marriage", year: 1853, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8350, lng: -88.9600, transport: "Auto", notes: "Married first wife Ann Jane Marvin in Wisconsin." },
-        { id: "e_bf_16", personId: "p_KVLF-ZFX", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Married second wife Phoebe Jane Marvin after Ann Jane's passing." },
-        { id: "e_bf_17", personId: "p_KVLF-ZFX", type: "Residence / Census", year: 1870, place: "Winnebago / Green Lake County, Wisconsin", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1870 US Census: Residing with Phoebe Jane in the Green Lake / Winnebago region of Wisconsin." },
-        { id: "e_bf_18", personId: "p_KVLF-ZFX", type: "Death / Burial", year: 1878, place: "Berlin / Green Lake & Winnebago County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Detailed his pioneer journey from New York to Waukesha, Marquette, Green Lake, and Winnebago Counties, WI; survived by widow Phoebe Jane Marvin and siblings William, Jane, and Sophia (Truman W. Bennett)." },
+        // George Burger (MCLH-1Q2 / KVLF-ZFX, 1829-1878)
+        { id: "e_bf_13", personId: "p_MCLH-1Q2", type: "Birth", year: 1829, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Eldest son of Frederick & Mabel Burger, born in Chenango County, NY (FS ID: MCLH-1Q2 / KVLF-ZFX)." },
+        { id: "e_bf_14", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1840, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Raised in Chenango County, NY (1840 Census: ark:/61903/1:1:XHTQ-NJK)." },
+        { id: "e_bf_15", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, New York before heading to Wisconsin." },
+        { id: "e_bf_16", personId: "p_MCLH-1Q2", type: "Arrival", year: 1852, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "1878 Obituary Note: Traveled via Erie Canal & Great Lakes to Waukesha County, WI, then to Marquette/Green Lake County." },
+        { id: "e_bf_17", personId: "p_MCLH-1Q2", type: "Marriage", year: 1854, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Married first wife Ann Jane Marvin in Marquette/Green Lake County, Wisconsin." },
+        { id: "e_bf_18", personId: "p_MCLH-1Q2", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Married second wife Phoebe Jane Marvin after Ann Jane's passing." },
+        { id: "e_bf_19", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1870, place: "Winnebago / Green Lake County, Wisconsin", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1870 US Census: Residing with Phoebe Jane in the Green Lake / Winnebago region of Wisconsin." },
+        { id: "e_bf_20", personId: "p_MCLH-1Q2", type: "Death / Burial", year: 1878, place: "Berlin / Green Lake & Winnebago County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Chronicled his pioneer journey from Chenango Co., NY to Waukesha, Marquette, Green Lake, and Winnebago Counties, WI; survived by widow Phoebe Jane Marvin and siblings William, Jane, and Sophia (Truman W. Bennett)." },
 
         // Ann Jane Marvin (1833-1860)
-        { id: "e_bf_19", personId: "p_ann_marvin", type: "Birth", year: 1833, place: "New York, United States", lat: 42.9000, lng: -76.5000, transport: "Auto", notes: "Born in New York prior to moving west to Wisconsin." },
-        { id: "e_bf_20", personId: "p_ann_marvin", type: "Marriage", year: 1853, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8350, lng: -88.9600, transport: "Auto", notes: "First wife of George Burger (KVLF-ZFX)." },
-        { id: "e_bf_21", personId: "p_ann_marvin", type: "Death / Burial", year: 1860, place: "Green Lake County, Wisconsin, United States", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Died in Green Lake County, Wisconsin." },
+        { id: "e_bf_21", personId: "p_ann_marvin", type: "Birth", year: 1833, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Born in New York prior to moving west to Wisconsin." },
+        { id: "e_bf_22", personId: "p_ann_marvin", type: "Marriage", year: 1854, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "First wife of George Burger (MCLH-1Q2)." },
+        { id: "e_bf_23", personId: "p_ann_marvin", type: "Death / Burial", year: 1860, place: "Green Lake County, Wisconsin, United States", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Died in Green Lake County, Wisconsin." },
 
         // Phoebe Jane Marvin (1838-1905)
-        { id: "e_bf_22", personId: "p_phoebe_marvin", type: "Birth", year: 1838, place: "New York, United States", lat: 42.9000, lng: -76.5000, transport: "Auto", notes: "Born in New York." },
-        { id: "e_bf_23", personId: "p_phoebe_marvin", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Second wife of George Burger (KVLF-ZFX)." },
-        { id: "e_bf_24", personId: "p_phoebe_marvin", type: "Residence / Census", year: 1878, place: "Berlin / Winnebago & Green Lake County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Surviving widow of George Burger." },
+        { id: "e_bf_24", personId: "p_phoebe_marvin", type: "Birth", year: 1838, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Born in New York." },
+        { id: "e_bf_25", personId: "p_phoebe_marvin", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Second wife of George Burger (MCLH-1Q2)." },
+        { id: "e_bf_26", personId: "p_phoebe_marvin", type: "Residence / Census", year: 1878, place: "Berlin / Winnebago & Green Lake County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Surviving widow of George Burger." },
 
         // William Burger (1832-1898)
-        { id: "e_bf_25", personId: "p_william_burger", type: "Birth", year: 1832, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Son of Frederick & Mabel Burger, born in New York." },
-        { id: "e_bf_26", personId: "p_william_burger", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated from New York to Wisconsin with parents." },
-        { id: "e_bf_27", personId: "p_william_burger", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 18)." },
-        { id: "e_bf_28", personId: "p_william_burger", type: "Residence / Census", year: 1878, place: "Green Lake County, Wisconsin, United States", lat: 43.8044, lng: -89.0437, transport: "Auto", notes: "Mentioned in brother George Burger's 1878 obituary." },
+        { id: "e_bf_27", personId: "p_william_burger", type: "Birth", year: 1832, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Son of Frederick & Mabel Burger, born in Chenango County, New York." },
+        { id: "e_bf_28", personId: "p_william_burger", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, NY." },
+        { id: "e_bf_29", personId: "p_william_burger", type: "Arrival", year: 1852, place: "Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Migrated from Chenango County, NY to Marquette/Green Lake County, Wisconsin (1852–1854)." },
+        { id: "e_bf_30", personId: "p_william_burger", type: "Residence / Census", year: 1878, place: "Green Lake County, Wisconsin, United States", lat: 43.8044, lng: -89.0437, transport: "Auto", notes: "Mentioned in brother George Burger's 1878 obituary." },
 
-        // Jane Burger (1835-1901)
-        { id: "e_bf_29", personId: "p_jane_burger", type: "Birth", year: 1835, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Daughter of Frederick & Mabel Burger, born in New York." },
-        { id: "e_bf_30", personId: "p_jane_burger", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated west with Burger family from New York to Wisconsin." },
-        { id: "e_bf_31", personId: "p_jane_burger", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 15)." },
+        // Jane Burger (GSPD-4TX, 1835-1901)
+        { id: "e_bf_31", personId: "p_GSPD-4TX", type: "Birth", year: 1835, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Daughter of Frederick & Mabel Burger, born in Chenango County, NY (FS ID: GSPD-4TX)." },
+        { id: "e_bf_32", personId: "p_GSPD-4TX", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, New York." },
+        { id: "e_bf_33", personId: "p_GSPD-4TX", type: "Arrival", year: 1853, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Migrated west with Burger family from Chenango County, NY to Wisconsin (1852–1854)." },
 
-        // Sophia Burger (1841-1912)
-        { id: "e_bf_32", personId: "p_sophia_burger", type: "Birth", year: 1841, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Youngest daughter of Frederick & Mabel Burger, born in New York." },
-        { id: "e_bf_33", personId: "p_sophia_burger", type: "Arrival", year: 1846, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Traveled with parents from New York to Wisconsin at age 5." },
-        { id: "e_bf_34", personId: "p_sophia_burger", type: "Residence / Census", year: 1850, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1850 US Census: Marquette County, Wisconsin (age 9)." },
-        { id: "e_bf_35", personId: "p_sophia_burger", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Truman W. Bennett in Wisconsin." },
-        { id: "e_bf_36", personId: "p_sophia_burger", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1878 Obituary Note: Referenced alongside husband Truman W. Bennett in Winnebago/Green Lake County." },
+        // Sophia Burger (GSP8-5DZ, 1841-1912)
+        { id: "e_bf_34", personId: "p_GSP8-5DZ", type: "Birth", year: 1841, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Youngest daughter of Frederick & Mabel Burger, born in Chenango County, NY (FS ID: GSP8-5DZ)." },
+        { id: "e_bf_35", personId: "p_GSP8-5DZ", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, NY (age 9)." },
+        { id: "e_bf_36", personId: "p_GSP8-5DZ", type: "Arrival", year: 1853, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Traveled with parents from Chenango County, NY to Marquette/Green Lake County, Wisconsin." },
+        { id: "e_bf_37", personId: "p_GSP8-5DZ", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Truman W. Bennett in Wisconsin." },
+        { id: "e_bf_38", personId: "p_GSP8-5DZ", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1878 Obituary Note: Referenced alongside husband Truman W. Bennett in Winnebago/Green Lake County." },
 
         // Truman W. Bennett (1836-1908)
-        { id: "e_bf_37", personId: "p_truman_bennett", type: "Birth", year: 1836, place: "New York, United States", lat: 42.7500, lng: -75.5000, transport: "Auto", notes: "Born in New York prior to settling in Wisconsin." },
-        { id: "e_bf_38", personId: "p_truman_bennett", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Sophia Burger in central Wisconsin." },
-        { id: "e_bf_39", personId: "p_truman_bennett", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "Resided in Winnebago/Green Lake County, Wisconsin with wife Sophia (Burger) Bennett." }
+        { id: "e_bf_39", personId: "p_truman_bennett", type: "Birth", year: 1836, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Born in central New York prior to settling in Wisconsin." },
+        { id: "e_bf_40", personId: "p_truman_bennett", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Sophia Burger (GSP8-5DZ) in central Wisconsin." },
+        { id: "e_bf_41", personId: "p_truman_bennett", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "Resided in Winnebago/Green Lake County, Wisconsin with wife Sophia (Burger) Bennett." }
       ]
     };
 
+    // =========================================================================
+    // 1C. HISTORICAL MIGRATION CORRIDORS OVERLAY DATA
+    // =========================================================================
+    const HISTORICAL_CORRIDORS = [
+      {
+        id: "corridor_catskill",
+        name: "Catskill Turnpike & Chenango Feeder Route (1802+)",
+        color: "#f59e0b",
+        dashArray: "6, 4",
+        years: "1802–1855",
+        mode: "🐎 Corduroy Turnpike & Canal Feeder",
+        dist: "~145 miles",
+        timeStr: "~5–7 days by wagon",
+        context: "Connected the Hudson Valley and Kortright (Delaware County) west across the Susquehanna River to Chenango County (Norwich/Oxford) and north to the Erie Canal at Utica.",
+        coords: [
+          [42.2173, -73.8646], // Catskill on Hudson
+          [42.3409, -74.8002], // Kortright, Delaware Co., NY
+          [42.3251, -75.3127], // Unadilla / Susquehanna Crossing
+          [42.4459, -75.6099], // Chenango County (Oxford / Norwich), NY
+          [42.8000, -75.5600], // Hamilton / Chenango Canal
+          [43.1009, -75.2327]  // Utica (Erie Canal junction)
+        ]
+      },
+      {
+        id: "corridor_erie",
+        name: "Erie Canal Corridor (Albany to Buffalo, 1825+)",
+        color: "#06b6d4",
+        dashArray: "8, 5",
+        years: "1825–1860",
+        mode: "🛶 Canal Packet Boat",
+        dist: "363 miles",
+        timeStr: "~5 days (4 mph packet)",
+        context: "Opened in 1825, the Erie Canal cut travel time from eastern/central New York (Albany, Utica, Chenango feeder) to Lake Erie at Buffalo from 3 weeks down to 5 days.",
+        coords: [
+          [42.6526, -73.7562], // Albany
+          [42.8142, -73.9396], // Schenectady
+          [43.1009, -75.2327], // Utica
+          [43.2128, -75.4557], // Rome
+          [43.0481, -76.1474], // Syracuse
+          [43.1566, -77.6088], // Rochester
+          [43.1706, -78.6903], // Lockport
+          [42.8864, -78.8784]  // Buffalo (Lake Erie)
+        ]
+      },
+      {
+        id: "corridor_lakes",
+        name: "Great Lakes Steamer Route (Buffalo to Milwaukee / Fox River, WI)",
+        color: "#60a5fa",
+        dashArray: "4, 6",
+        years: "1830–1865",
+        mode: "⛴️ Great Lakes Sidewheel Steamer",
+        dist: "~620 miles",
+        timeStr: "~4–6 days via Mackinac",
+        context: "New York families migrating to Wisconsin Territory in the 1840s–1850s boarded sidewheel steamers at Buffalo, sailing across Lake Erie, Lake Huron, and through the Straits of Mackinac to Milwaukee (Waukesha) or Green Bay/Fox River into Winnebago, Green Lake, and Marquette Counties.",
+        coords: [
+          [42.8864, -78.8784], // Buffalo, NY
+          [41.6292, -81.3615], // Fairport / Kirtland, OH
+          [41.8000, -82.8000], // Western Lake Erie
+          [42.3314, -83.0458], // Detroit River
+          [43.0000, -82.4200], // Port Huron / Southern Lake Huron
+          [45.0600, -83.1000], // Northern Lake Huron
+          [45.8170, -84.7278], // Straits of Mackinac
+          [44.5133, -88.0133], // Green Bay, WI
+          [44.0247, -88.5426], // Oshkosh / Winnebago County, WI
+          [43.8441, -88.9598], // Green Lake / Marquette County, WI
+          [43.0389, -87.9065], // Milwaukee Harbor, WI
+          [43.0117, -88.2315]  // Waukesha County, WI
+        ]
+      },
+      {
+        id: "corridor_mormon_oregon",
+        name: "Mormon / Oregon Overland Pioneer Trail (1846–1869)",
+        color: "#d97706",
+        dashArray: "7, 5",
+        years: "1846–1869",
+        mode: "🐂 Ox Wagon / Handcart Trail",
+        dist: "~1,300 miles",
+        timeStr: "~10–14 weeks overland",
+        context: "Primary western overland wagon corridor from Nauvoo (Illinois) and Winter Quarters/Council Bluffs (Iowa/Nebraska) along the Platte and Sweetwater Rivers through South Pass to Ogden and the Salt Lake Valley.",
+        coords: [
+          [40.5500, -91.3850], // Nauvoo, IL
+          [41.0310, -94.0220], // Mt. Pisgah, IA
+          [41.2619, -95.8608], // Council Bluffs / Winter Quarters
+          [40.6447, -98.9917], // Fort Kearny, NE (Platte River)
+          [41.8660, -103.6670], // Scotts Bluff, NE
+          [42.2030, -104.5558], // Fort Laramie, WY
+          [42.4930, -107.1290], // Independence Rock, WY
+          [42.3700, -108.8600], // South Pass, WY
+          [41.3177, -110.3890], // Fort Bridger, WY
+          [41.2230, -111.9738]  // Ogden / Weber Valley, UT
+        ]
+      }
+    ];
+
     async function loadBurgerFamilyPreset() {
       const shouldMerge = confirm(
-        "Load Frederick Burger (KVG8-YVV) & Mabel Family Group (9 ancestors, 39 New York → Wisconsin waypoints & 1878 obituary notes):\n\n• Click OK to MERGE into your current tree\n• Click Cancel to REPLACE your current tree with the Burger Family Group"
+        "Load Frederick Burger (KVG8-YVV) & Mabel (GSRP-RWT) Family Group (9 ancestors, 41 Kortright/Chenango NY → Wisconsin waypoints & 1878 obituary notes):\n\n• Click OK to MERGE into your current tree\n• Click Cancel to REPLACE your current tree with the Burger Family Group"
       );
       const clone = JSON.parse(JSON.stringify(BURGER_FAMILY_DATA));
       await applyImportedDataset(clone, shouldMerge ? "merge" : "replace");
@@ -730,7 +830,7 @@ Rules:
     // 2. STATE & INITIALIZATION
     // =========================================================================
     let appData = JSON.parse(localStorage.getItem("ancestor_geotracker_data")) || JSON.parse(JSON.stringify(DEFAULT_DATA));
-    let map, baseTileLayer, markersLayer, pathsLayer, proximityLayer, relLayer;
+    let map, baseTileLayer, histTrailsLayer, markersLayer, pathsLayer, proximityLayer, relLayer;
     let playInterval = null;
     let expandedPersonIds = new Set();
     let hiddenPersonIds = new Set();
@@ -770,6 +870,7 @@ Rules:
         maxZoom: 18
       }).addTo(map);
 
+      histTrailsLayer = L.layerGroup().addTo(map);
       pathsLayer = L.layerGroup().addTo(map);
       relLayer = L.layerGroup().addTo(map);
       proximityLayer = L.layerGroup().addTo(map);
@@ -1093,6 +1194,115 @@ Rules:
       });
     }
 
+    // Traverse appData.relationships up to 6 degrees to classify kinship between two ancestors
+    function findRelationshipPath(personAId, personBId) {
+      if (!personAId || !personBId || personAId === personBId) {
+        return { label: "Self", badgeClass: "bg-slate-700 text-slate-300" };
+      }
+
+      // Build adjacency list with directional edge semantics:
+      // "spouse", "parent_of" (from parent to child), "child_of" (from child to parent)
+      const adj = new Map();
+      const addEdge = (u, v, stepType) => {
+        if (!adj.has(u)) adj.set(u, []);
+        adj.get(u).push({ to: v, stepType });
+      };
+
+      appData.relationships.forEach((r) => {
+        const t = (r.type || "").toLowerCase();
+        if (t === "spouse") {
+          addEdge(r.person1Id, r.person2Id, "spouse");
+          addEdge(r.person2Id, r.person1Id, "spouse");
+        } else if (t === "parent") {
+          addEdge(r.person1Id, r.person2Id, "parent_of");
+          addEdge(r.person2Id, r.person1Id, "child_of");
+        } else if (t === "child") {
+          addEdge(r.person1Id, r.person2Id, "child_of");
+          addEdge(r.person2Id, r.person1Id, "parent_of");
+        }
+      });
+
+      // BFS up to 6 degrees
+      const queue = [{ id: personAId, steps: [] }];
+      const visited = new Set([personAId]);
+
+      while (queue.length > 0) {
+        const { id, steps } = queue.shift();
+        if (steps.length >= 6) continue;
+
+        const neighbors = adj.get(id) || [];
+        for (const edge of neighbors) {
+          const nextSteps = [...steps, edge.stepType];
+          if (edge.to === personBId) {
+            const deg = nextSteps.length;
+            if (deg === 1) {
+              if (nextSteps[0] === "spouse") {
+                return { label: "💍 Spouses", badgeClass: "bg-pink-500/20 text-pink-300 border-pink-500/40" };
+              }
+              return { label: "🧬 Parent / Child", badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/40" };
+            }
+            if (deg === 2) {
+              const [s1, s2] = nextSteps;
+              if (s1 === "child_of" && s2 === "parent_of") {
+                return { label: "👥 Siblings", badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" };
+              }
+              if (s1 === "parent_of" && s2 === "child_of") {
+                return { label: "💍 Spouses", badgeClass: "bg-pink-500/20 text-pink-300 border-pink-500/40" };
+              }
+              if ((s1 === "parent_of" && s2 === "parent_of") || (s1 === "child_of" && s2 === "child_of")) {
+                return { label: "🌳 Grandparent / Child", badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/40" };
+              }
+              return { label: "🤝 In-Laws / Extended", badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/40" };
+            }
+            return {
+              label: `🤝 In-Laws / Extended (${deg}°)`,
+              badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/40"
+            };
+          }
+
+          if (!visited.has(edge.to)) {
+            visited.add(edge.to);
+            queue.push({ id: edge.to, steps: nextSteps });
+          }
+        }
+      }
+
+      return {
+        label: "✨ Unlinked Branch — Potential Relative!",
+        badgeClass: "bg-amber-500/25 text-amber-200 border-amber-400/50"
+      };
+    }
+
+    function renderHistoricalCorridors() {
+      if (!histTrailsLayer) return;
+      histTrailsLayer.clearLayers();
+      const showHist = document.getElementById("toggleHistTrails")?.checked;
+      if (!showHist) return;
+
+      HISTORICAL_CORRIDORS.forEach((corridor) => {
+        const line = L.polyline(corridor.coords, {
+          color: corridor.color,
+          weight: 2.5,
+          opacity: 0.55,
+          dashArray: corridor.dashArray
+        }).addTo(histTrailsLayer);
+
+        line.bindTooltip(`🛤️ ${corridor.name}`, { sticky: true });
+        line.on("click", () => {
+          showJourneyCard({
+            personName: "Historical Corridor",
+            fromPlace: corridor.name,
+            toPlace: corridor.years,
+            years: corridor.years,
+            dist: corridor.dist,
+            mode: corridor.mode,
+            timeStr: corridor.timeStr,
+            context: corridor.context
+          });
+        });
+      });
+    }
+
     function updateMapForYear() {
       const currentYear = parseInt(document.getElementById("yearSlider").value, 10);
       const showGhost = document.getElementById("toggleGhost").checked;
@@ -1104,6 +1314,7 @@ Rules:
       pathsLayer.clearLayers();
       proximityLayer.clearLayers();
       relLayer.clearLayers();
+      renderHistoricalCorridors();
 
       const visiblePersons = getFilteredPersons();
       const activePositions = [];
@@ -1157,9 +1368,13 @@ Rules:
           if (dist <= proxThreshold) {
             nearPersonIds.add(a.person.id);
             nearPersonIds.add(b.person.id);
+            const kinship = findRelationshipPath(a.person.id, b.person.id);
             alerts.push({
+              personAId: a.person.id,
+              personBId: b.person.id,
               nameA: a.person.name,
               nameB: b.person.name,
+              kinship,
               dist: Math.round(dist),
               place: a.place.split(",")[0],
               lat: (a.lat + b.lat) / 2,
@@ -1234,8 +1449,11 @@ Rules:
       } else {
         alertBox.innerHTML = alerts.map((a) => `
           <div onclick="map.flyTo([${a.lat}, ${a.lng}], 9)" class="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded px-2.5 py-1.5 cursor-pointer transition" title="Click to zoom to convergence">
-            <span class="font-bold text-amber-300">${escapeHtml(a.nameA)}</span> & <span class="font-bold text-amber-300">${escapeHtml(a.nameB)}</span>
-            are <strong>${a.dist} miles apart</strong> near ${escapeHtml(a.place)}!
+            <div>
+              <span class="font-bold text-amber-300">${escapeHtml(a.nameA)}</span> & <span class="font-bold text-amber-300">${escapeHtml(a.nameB)}</span>
+              are <strong>${a.dist} miles apart</strong> near ${escapeHtml(a.place)}!
+            </div>
+            ${a.kinship ? `<div class="mt-1"><span class="inline-block px-1.5 py-0.5 rounded border text-[10px] font-semibold ${a.kinship.badgeClass}">${escapeHtml(a.kinship.label)}</span></div>` : ""}
           </div>
         `).join("");
       }
@@ -1432,7 +1650,8 @@ Rules:
                   bestYear: yr,
                   bestLat: (a.lat + b.lat) / 2,
                   bestLng: (a.lng + b.lng) / 2,
-                  place: placeShort
+                  place: placeShort,
+                  kinship: findRelationshipPath(a.person.id, b.person.id)
                 });
               } else {
                 const entry = pairWindows.get(key);
@@ -1462,12 +1681,13 @@ Rules:
       } else {
         drawer.innerHTML = results.map((r) => `
           <div onclick="jumpToYearAndCoords(${r.bestYear}, ${r.bestLat}, ${r.bestLng})"
-            class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded px-2 py-1 cursor-pointer transition flex items-center justify-between">
+            class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded px-2 py-1.5 cursor-pointer transition flex items-center justify-between gap-2">
             <div>
-              <span class="font-semibold text-amber-300">${escapeHtml(r.nameA)} & ${escapeHtml(r.nameB)}</span>
+              <div class="font-semibold text-amber-300">${escapeHtml(r.nameA)} & ${escapeHtml(r.nameB)}</div>
               <div class="text-[10px] text-slate-400">${r.startYear === r.endYear ? r.startYear : `${r.startYear}–${r.endYear}`} • Closest: ${r.minDist} mi (${escapeHtml(r.place)})</div>
+              ${r.kinship ? `<span class="inline-block px-1.5 py-0.5 rounded border text-[9px] font-semibold ${r.kinship.badgeClass} mt-1">${escapeHtml(r.kinship.label)}</span>` : ""}
             </div>
-            <span class="text-amber-400 font-bold ml-2">${r.bestYear} ➔</span>
+            <span class="text-amber-400 font-bold ml-2 shrink-0">${r.bestYear} ➔</span>
           </div>
         `).join("");
       }
@@ -1724,6 +1944,10 @@ Rules:
     const HISTORICAL_PLACE_Gazetteer = {
       "new york": { lat: 42.6526, lng: -73.7562 },
       "new york city": { lat: 40.7128, lng: -74.0060 },
+      "kortright, delaware, new york": { lat: 42.3409, lng: -74.8002 },
+      "delaware county": { lat: 42.3409, lng: -74.8002 },
+      "chenango, new york": { lat: 42.4459, lng: -75.6099 },
+      "chenango county": { lat: 42.4459, lng: -75.6099 },
       "massachusetts": { lat: 42.3601, lng: -71.0589 },
       "boston": { lat: 42.3601, lng: -71.0589 },
       "connecticut": { lat: 41.7658, lng: -72.6734 },
