@@ -11,6 +11,14 @@
 - **⚡ Proximity GeoRadar & Full-Timeline Convergence Scanner**:
   - Automatically computes Haversine distances between all active ancestors in the selected year and highlights overlaps with pulsing pins and proximity lines.
   - Click **🔎 Scan Full Timeline for Convergences** to scan across every year on the timeline and discover every time two ancestors lived or traveled near one another.
+- **🌊 Curved Geodesic Ocean Arcs & 🥾 Overland Terrain Trail Routing (OSRM)**:
+  - Automatically detects transatlantic and ocean crossings (>800 miles crossing longitude `-30°`) and renders smooth 30-point quadratic/geodesic Bezier arcs across the ocean instead of flat lines.
+  - For overland segments, click **🥾 Snap to Overland Terrain (OSRM)** in the **Journey Inspector Card** or any ancestor's **Waypoint Drawer** to fetch real foot/valley/mountain pass trail geometry via OSRM and cache `routeGeometry` directly on the waypoint.
+- **📋 Paste / Merge JSON Modal & Gemini-in-Chrome FamilySearch Extractor**:
+  - Click **📋 Paste JSON** (or **⬆ Import JSON**) to either **Merge into current tree** (deduplicating people by `fsId` or `name + birthYear`, and deduplicating waypoints by `type + year`) or **Replace entire dataset**.
+  - Includes a built-in one-click **📋 Copy Gemini-in-Chrome FamilySearch Extractor Prompt** button so you can extract any ancestor's FamilySearch Person Details page directly into GeoTracker JSON.
+- **🔗 Direct FamilySearch Links**:
+  - Every ancestor card in the sidebar and every map marker popup displays a clickable `🔗 FS-ID` link (`https://www.familysearch.org/tree/person/details/${fsId}`) that opens their FamilySearch Person Details profile in a new tab.
 - **🚂 Historical Route Telemetry**:
   - Click any migration segment on the map to inspect distance, historically likely transport mode (*Sailing Packet Ship, Transatlantic Steamship, Erie Canal Packet, Ox Wagon / Handcart, Early Steam Railroad*), estimated travel duration, and historical context.
 - **📜 GEDCOM (`.ged`) Import + Built-In Historical Gazetteer**:
@@ -22,4 +30,4 @@
 - **🌍 Google Earth (`.KML`), JSON Backup & Firebase Cloud Sync**:
   - Auto-saves locally in `localStorage`.
   - Optionally connect a free **Firebase Realtime Database URL** to sync seamlessly across devices on GitHub Pages.
-  - Export timestamped `.KML` trails directly to Google Earth Pro / Web.
+  - Export timestamped `.KML` trails (including curved ocean arcs and OSRM overland terrain trails) directly to Google Earth Pro / Web.

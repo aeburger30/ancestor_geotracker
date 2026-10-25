@@ -62,10 +62,13 @@
       <button onclick="exportJSON()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded font-medium transition" title="Download backup JSON">
         ⬇ Export JSON
       </button>
-      <label class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded font-medium cursor-pointer transition" title="Import backup JSON">
+      <label class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded font-medium cursor-pointer transition" title="Import or merge backup JSON file">
         ⬆ Import JSON
         <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)" />
       </label>
+      <button onclick="openPasteJsonModal()" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded font-semibold transition" title="Paste & merge JSON from FamilySearch or Gemini">
+        📋 Paste JSON
+      </button>
       <label class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-3 py-1.5 rounded cursor-pointer transition" title="Import standard GEDCOM (.ged) family tree">
         📜 Import GEDCOM
         <input type="file" id="importGedcomFile" accept=".ged,.gedcom" class="hidden" onchange="importGEDCOM(event)" />
@@ -374,6 +377,7 @@
           <div class="flex justify-between"><span class="text-slate-400">Est. Travel Time:</span> <span id="jcTime" class="font-semibold text-emerald-400"></span></div>
         </div>
         <p id="jcContext" class="mt-2.5 text-slate-300 italic leading-relaxed"></p>
+        <div id="jcActions" class="mt-2.5 pt-2.5 border-t border-slate-800 flex flex-col gap-1.5"></div>
       </div>
     </main>
   </div>
@@ -445,6 +449,116 @@
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="disconnectCloud()" class="bg-rose-800/70 hover:bg-rose-700 text-white px-3 py-2 rounded">Use Local Only</button>
         <button onclick="saveCloudConfig()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-4 py-2 rounded">Save & Sync Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASTE / MERGE JSON & GEMINI FAMILYSEARCH EXTRACTOR MODAL -->
+  <div id="pasteJsonModal" class="hidden fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-xl max-w-2xl w-full p-6 space-y-4 text-xs max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-base font-bold text-amber-400">📋 Paste / Merge Ancestor JSON</h2>
+          <p class="text-[11px] text-slate-400">Paste JSON extracted from FamilySearch (via Gemini-in-Chrome) or load a JSON backup file.</p>
+        </div>
+        <button onclick="toggleModal('pasteJsonModal')" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <!-- Collapsible Gemini-in-Chrome FamilySearch Extractor Prompt Helper -->
+      <details class="bg-slate-900/90 border border-amber-500/40 rounded-lg p-3 group">
+        <summary class="cursor-pointer font-semibold text-amber-300 flex items-center justify-between select-none">
+          <span>🤖 Gemini-in-Chrome FamilySearch Extractor Prompt (Click to expand)</span>
+          <button type="button" id="copyPromptBtn" onclick="event.preventDefault(); event.stopPropagation(); copyFamilySearchPrompt();"
+            class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1 rounded text-[11px] transition shrink-0">
+            📋 Copy Gemini-in-Chrome FamilySearch Extractor Prompt
+          </button>
+        </summary>
+        <div class="mt-2.5 pt-2.5 border-t border-slate-800 space-y-2 text-[11px] text-slate-300">
+          <p>Open any ancestor's <strong>FamilySearch Person Details</strong> page in Chrome, open the Gemini side panel, and paste this prompt. Then paste Gemini's JSON output below:</p>
+          <pre id="fsExtractorPromptText" class="bg-slate-950 border border-slate-700 rounded p-2.5 text-[10px] text-slate-300 overflow-x-auto whitespace-pre-wrap leading-relaxed">Extract all genealogical data visible on this FamilySearch Person page (including the main person, their spouses, parents, or children if shown, and all Vitals / Events / Sources / Memories places &amp; dates) into a single valid JSON object for Ancestor GeoTracker.
+
+Return ONLY raw JSON (no markdown commentary) matching this exact schema:
+{
+  "persons": [
+    {
+      "id": "p_KWJ1-001",
+      "name": "Full Name",
+      "fsId": "KWJ1-001",
+      "birthYear": 1808,
+      "deathYear": 1878,
+      "branchColor": "#38bdf8"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r_1",
+      "person1Id": "p_KWJ1-001",
+      "person2Id": "p_KWJ1-002",
+      "type": "spouse"
+    }
+  ],
+  "events": [
+    {
+      "id": "e_1",
+      "personId": "p_KWJ1-001",
+      "type": "Birth | Christening | Residence / Census | Emigration / Departure | Arrival | Marriage | Land Deed / Homestead | Military Service | Death / Burial",
+      "year": 1808,
+      "place": "Town, County, State, Country",
+      "lat": 42.3409,
+      "lng": -74.8002,
+      "transport": "Auto",
+      "notes": "Brief historical or source note from the page"
+    }
+  ]
+}
+Rules:
+1. Always include accurate decimal latitude ("lat") and longitude ("lng") for every event place.
+2. Use the person's FamilySearch ID (e.g. "KWJ1-001") in "fsId".
+3. For "branchColor", use "#38bdf8" (sky blue), "#f43f5e" (rose), "#34d399" (emerald), "#a855f7" (purple), or "#fb923c" (orange).</pre>
+        </div>
+      </details>
+
+      <!-- Import Mode Toggle (Merge vs Replace) -->
+      <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2">
+        <div class="font-semibold text-slate-200">Import Behavior:</div>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="radio" name="jsonImportMode" value="merge" checked class="mt-0.5 accent-amber-400" />
+          <div>
+            <div class="font-semibold text-amber-300">Merge into current tree (deduplicate by fsId or name+birthYear)</div>
+            <div class="text-[11px] text-slate-400">Matches existing ancestors by FamilySearch ID or Name + Birth Year, merges new waypoints (deduplicated by Event Type + Year), and adds new relationships without creating duplicates.</div>
+          </div>
+        </label>
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input type="radio" name="jsonImportMode" value="replace" class="mt-0.5 accent-rose-500" />
+          <div>
+            <div class="font-semibold text-rose-300">Replace entire dataset</div>
+            <div class="text-[11px] text-slate-400">Overwrites all current ancestors, waypoints, and relationships with the imported JSON.</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- JSON Textarea -->
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="text-slate-300 font-semibold">JSON Payload</label>
+          <span id="pasteModalFileStatus" class="text-[11px] text-sky-400"></span>
+        </div>
+        <textarea id="pasteJsonTextarea" rows="8" placeholder='Paste JSON here — e.g. { "persons": [...], "relationships": [...], "events": [...] }'
+          class="w-full bg-slate-950 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 font-mono text-[11px]"></textarea>
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <button type="button" onclick="document.getElementById('pasteJsonTextarea').value = ''" class="text-slate-400 hover:text-white underline">
+          Clear Text
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="toggleModal('pasteJsonModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded">
+            Cancel
+          </button>
+          <button type="button" onclick="processPastedJSON()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded transition">
+            ✨ Import / Merge JSON Now
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -561,7 +675,7 @@
     }
 
     // =========================================================================
-    // 3. HISTORICAL TRANSPORTATION & HAVERSINE ENGINE
+    // 3. HISTORICAL TRANSPORTATION, GEODESIC OCEAN ARCS & OSRM TRAIL ENGINE
     // =========================================================================
     function haversineMiles(lat1, lon1, lat2, lon2) {
       const R = 3958.8; // Earth radius in miles
@@ -573,17 +687,151 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    function isOceanCrossing(evFrom, evTo) {
+      if (!evFrom || !evTo) return false;
+      const dist = haversineMiles(evFrom.lat, evFrom.lng, evTo.lat, evTo.lng);
+      const crossesLonNeg30 = (evFrom.lng > -30 && evTo.lng < -30) || (evFrom.lng < -30 && evTo.lng > -30);
+      const crossesPacific = Math.abs(evFrom.lng - evTo.lng) > 100 && dist > 1500;
+      return (dist > 800 && crossesLonNeg30) || crossesPacific;
+    }
+
+    // Generate a 30-segment (31-point) curved quadratic/geodesic Bezier arc for ocean crossings
+    function getCurvedOceanArc(evFrom, evTo, numPoints = 30) {
+      const lat1 = evFrom.lat, lng1 = evFrom.lng;
+      const lat2 = evTo.lat, lng2 = evTo.lng;
+      const midLat = (lat1 + lat2) / 2;
+      const midLng = (lng1 + lng2) / 2;
+      const dLng = Math.abs(lng2 - lng1);
+      // Northward geodesic curvature for North Atlantic / high-latitude crossings
+      const latOffset = Math.min(22, Math.max(6, dLng * 0.16));
+      const ctrlLat = Math.min(72, midLat + (midLat >= 0 ? latOffset : -latOffset));
+      const ctrlLng = midLng;
+
+      const pts = [];
+      for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints;
+        const u = 1 - t;
+        const lat = u * u * lat1 + 2 * u * t * ctrlLat + t * t * lat2;
+        const lng = u * u * lng1 + 2 * u * t * ctrlLng + t * t * lng2;
+        pts.push([lat, lng]);
+      }
+      return pts;
+    }
+
+    function getSegmentCoordinates(evFrom, evTo) {
+      if (evTo.routeGeometry && Array.isArray(evTo.routeGeometry) && evTo.routeGeometry.length > 1) {
+        return evTo.routeGeometry;
+      }
+      if (isOceanCrossing(evFrom, evTo)) {
+        return getCurvedOceanArc(evFrom, evTo, 30);
+      }
+      return [[evFrom.lat, evFrom.lng], [evTo.lat, evTo.lng]];
+    }
+
+    function interpolateAlongPolyline(coords, ratio) {
+      if (!coords || coords.length === 0) return [0, 0];
+      if (coords.length === 1) return coords[0];
+      const clamped = Math.max(0, Math.min(1, ratio));
+      const exactIdx = clamped * (coords.length - 1);
+      const idx = Math.floor(exactIdx);
+      const frac = exactIdx - idx;
+      if (idx >= coords.length - 1) return coords[coords.length - 1];
+      const pA = coords[idx];
+      const pB = coords[idx + 1];
+      return [
+        pA[0] + (pB[0] - pA[0]) * frac,
+        pA[1] + (pB[1] - pA[1]) * frac
+      ];
+    }
+
+    async function snapSegmentToTerrain(evFromId, evToId, btnEl) {
+      const evFrom = appData.events.find((e) => e.id === evFromId);
+      const evTo = appData.events.find((e) => e.id === evToId);
+      if (!evFrom || !evTo) return;
+
+      const origText = btnEl ? btnEl.textContent : "";
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "⏳ Snapping to OSRM Trail...";
+      }
+
+      try {
+        const url = `https://router.project-osrm.org/route/v1/foot/${evFrom.lng},${evFrom.lat};${evTo.lng},${evTo.lat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data.code === "Ok" && data.routes && data.routes.length > 0) {
+          const rawCoords = data.routes[0].geometry.coordinates; // [lng, lat]
+          let latLngs = rawCoords.map((c) => [
+            parseFloat(c[1].toFixed(5)),
+            parseFloat(c[0].toFixed(5))
+          ]);
+          // Keep geometry lightweight for localStorage while preserving valley/pass fidelity
+          if (latLngs.length > 350) {
+            const step = (latLngs.length - 1) / 349;
+            const sampled = [];
+            for (let i = 0; i < 349; i++) {
+              sampled.push(latLngs[Math.round(i * step)]);
+            }
+            sampled.push(latLngs[latLngs.length - 1]);
+            latLngs = sampled;
+          }
+          evTo.routeGeometry = latLngs;
+          if (data.routes[0].distance) {
+            evTo.routeDistanceMiles = Math.round(data.routes[0].distance * 0.000621371);
+          }
+          saveData();
+          updateMapForYear();
+          const person = appData.persons.find((p) => p.id === evTo.personId);
+          if (person) {
+            const info = analyzeHistoricalJourney(evFrom, evTo, person.name);
+            showJourneyCard(info, evFrom, evTo);
+          }
+        } else {
+          alert("Could not find an overland foot route between these points (they may be separated by water).");
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.textContent = origText;
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        alert("OSRM routing service error. Please try again in a moment.");
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = origText;
+        }
+      }
+    }
+
+    function clearSegmentTerrain(evFromId, evToId) {
+      const evFrom = appData.events.find((e) => e.id === evFromId);
+      const evTo = appData.events.find((e) => e.id === evToId);
+      if (!evTo) return;
+      delete evTo.routeGeometry;
+      delete evTo.routeDistanceMiles;
+      saveData();
+      updateMapForYear();
+      if (evFrom) {
+        const person = appData.persons.find((p) => p.id === evTo.personId);
+        if (person) {
+          const info = analyzeHistoricalJourney(evFrom, evTo, person.name);
+          showJourneyCard(info, evFrom, evTo);
+        }
+      }
+    }
+
     function analyzeHistoricalJourney(evFrom, evTo, personName) {
-      const dist = Math.round(haversineMiles(evFrom.lat, evFrom.lng, evTo.lat, evTo.lng));
+      const straightDist = Math.round(haversineMiles(evFrom.lat, evFrom.lng, evTo.lat, evTo.lng));
+      const dist = evTo.routeDistanceMiles || straightDist;
       const year = evTo.year;
       let mode = evTo.transport && evTo.transport !== "Auto" ? evTo.transport : "";
       let speedMpd = 20; // miles per day default
       let context = "";
 
-      const crossesAtlantic = (evFrom.lng > -25 && evTo.lng < -50) || (evFrom.lng < -50 && evTo.lng > -25);
+      const crossesOcean = isOceanCrossing(evFrom, evTo);
 
       if (!mode) {
-        if (crossesAtlantic) {
+        if (crossesOcean) {
           if (year < 1852) {
             mode = "⛵ Sailing Packet Ship";
             speedMpd = 100;
@@ -620,13 +868,16 @@
 
       const estDays = Math.max(1, Math.round(dist / speedMpd));
       const timeStr = estDays > 21 ? `~${Math.round(estDays / 7)} weeks (${estDays} days)` : `~${estDays} days`;
+      const distLabel = evTo.routeDistanceMiles
+        ? `${dist.toLocaleString()} mi (Overland Trail • ${straightDist.toLocaleString()} mi direct)`
+        : `${dist.toLocaleString()} miles`;
 
       return {
         personName,
         fromPlace: evFrom.place,
         toPlace: evTo.place,
         years: `${evFrom.year} → ${evTo.year}`,
-        dist: `${dist.toLocaleString()} miles`,
+        dist: distLabel,
         mode,
         timeStr,
         context
@@ -666,8 +917,10 @@
         ) {
           if (showGhost) {
             const ratio = (currentYear - pEvents[i].year) / (pEvents[i + 1].year - pEvents[i].year);
-            lat = pEvents[i].lat + (pEvents[i + 1].lat - pEvents[i].lat) * ratio;
-            lng = pEvents[i].lng + (pEvents[i + 1].lng - pEvents[i].lng) * ratio;
+            const segCoords = getSegmentCoordinates(pEvents[i], pEvents[i + 1]);
+            const interp = interpolateAlongPolyline(segCoords, ratio);
+            lat = interp[0];
+            lng = interp[1];
             currentPlace = `In transit / Between ${pEvents[i].place.split(",")[0]} & ${pEvents[i + 1].place.split(",")[0]}`;
             statusLabel = `Estimated between ${pEvents[i].year} & ${pEvents[i + 1].year}`;
             isInterpolated = true;
@@ -738,7 +991,7 @@
 
         if (pEvents.length === 0) return;
 
-        // Draw migration path segments
+        // Draw migration path segments (with curved geodesic ocean arcs or OSRM terrain trails)
         for (let i = 0; i < pEvents.length - 1; i++) {
           const evA = pEvents[i];
           const evB = pEvents[i + 1];
@@ -746,7 +999,8 @@
           const isInProgress = evA.year <= currentYear && evB.year > currentYear;
 
           if (isPast || isInProgress || showFuture) {
-            const line = L.polyline([[evA.lat, evA.lng], [evB.lat, evB.lng]], {
+            const pathCoords = getSegmentCoordinates(evA, evB);
+            const line = L.polyline(pathCoords, {
               color: person.branchColor,
               weight: isPast || isInProgress ? 3.5 : 2,
               opacity: isPast || isInProgress ? 0.85 : 0.35,
@@ -755,7 +1009,7 @@
 
             line.on("click", () => {
               const info = analyzeHistoricalJourney(evA, evB, person.name);
-              showJourneyCard(info);
+              showJourneyCard(info, evA, evB);
             });
           }
         }
@@ -829,7 +1083,7 @@
 
         const marker = L.marker([pos.lat, pos.lng], { icon }).addTo(markersLayer);
         const fsBadge = pos.person.fsId
-          ? `<a href="https://www.familysearch.org/tree/person/details/${encodeURIComponent(pos.person.fsId)}" target="_blank" rel="noopener" style="color:#0284c7; text-decoration:underline;">${escapeHtml(pos.person.fsId)}</a>`
+          ? `<a href="https://www.familysearch.org/tree/person/details/${encodeURIComponent(pos.person.fsId)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:600;">🔗 ${escapeHtml(pos.person.fsId)}</a>`
           : "N/A";
         marker.bindPopup(`
           <div style="font-size:12px; min-width:200px;">
@@ -874,6 +1128,10 @@
         const isExpanded = expandedPersonIds.has(p.id);
         const isHidden = hiddenPersonIds.has(p.id);
 
+        const fsLinkHtml = p.fsId
+          ? `<a href="https://www.familysearch.org/tree/person/details/${encodeURIComponent(p.fsId)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="text-sky-400 hover:text-sky-300 underline font-mono text-[10px] ml-1" title="Open ${escapeHtml(p.name)} on FamilySearch">🔗 ${escapeHtml(p.fsId)}</a>`
+          : "";
+
         const rels = appData.relationships.filter((r) => r.person1Id === p.id || r.person2Id === p.id);
         const relBadges = rels.map((r) => {
           const otherId = r.person1Id === p.id ? r.person2Id : r.person1Id;
@@ -893,19 +1151,35 @@
 
         const eventsListHtml = pEvents.length === 0
           ? `<div class="text-[11px] text-slate-500 italic">No waypoints recorded yet.</div>`
-          : pEvents.map((ev) => `
-            <div class="flex items-start justify-between gap-2 bg-slate-950/70 border border-slate-800 rounded px-2 py-1.5 text-[11px]">
-              <div class="cursor-pointer flex-1" onclick="jumpToEvent('${ev.id}')" title="Jump to ${ev.year} & fly to location">
-                <div class="font-semibold text-amber-300">${ev.year} • ${escapeHtml(ev.type)}</div>
-                <div class="text-slate-300">${escapeHtml(ev.place)}</div>
-                ${ev.notes ? `<div class="text-[10px] text-slate-400 italic mt-0.5">${escapeHtml(ev.notes)}</div>` : ""}
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button onclick="startEditEvent('${ev.id}')" title="Edit waypoint" class="text-slate-400 hover:text-amber-300 px-1">✏️</button>
-                <button onclick="deleteEvent('${ev.id}')" title="Delete waypoint" class="text-slate-500 hover:text-rose-400 px-1">🗑</button>
-              </div>
-            </div>
-          `).join("");
+          : pEvents.map((ev, idx) => {
+              const prevEv = idx > 0 ? pEvents[idx - 1] : null;
+              const canSnapOverland = prevEv && !isOceanCrossing(prevEv, ev) && (prevEv.lat !== ev.lat || prevEv.lng !== ev.lng);
+              const hasTerrain = ev.routeGeometry && ev.routeGeometry.length > 1;
+              const snapBtnHtml = canSnapOverland
+                ? `<div class="mt-1 flex items-center gap-2">
+                    <button type="button" onclick="event.stopPropagation(); snapSegmentToTerrain('${prevEv.id}', '${ev.id}', this)"
+                      class="text-[10px] ${hasTerrain ? "text-emerald-400 hover:text-emerald-300" : "text-sky-400 hover:text-sky-300"} font-medium flex items-center gap-1">
+                      🥾 ${hasTerrain ? "Snapped to Overland Terrain (OSRM)" : "Snap to Overland Terrain (OSRM)"}
+                    </button>
+                    ${hasTerrain ? `<button type="button" onclick="event.stopPropagation(); clearSegmentTerrain('${prevEv.id}', '${ev.id}')" class="text-[10px] text-slate-500 hover:text-rose-400" title="Reset to straight line">↺</button>` : ""}
+                  </div>`
+                : "";
+
+              return `
+                <div class="flex items-start justify-between gap-2 bg-slate-950/70 border border-slate-800 rounded px-2 py-1.5 text-[11px]">
+                  <div class="cursor-pointer flex-1" onclick="jumpToEvent('${ev.id}')" title="Jump to ${ev.year} & fly to location">
+                    <div class="font-semibold text-amber-300">${ev.year} • ${escapeHtml(ev.type)}</div>
+                    <div class="text-slate-300">${escapeHtml(ev.place)}</div>
+                    ${ev.notes ? `<div class="text-[10px] text-slate-400 italic mt-0.5">${escapeHtml(ev.notes)}</div>` : ""}
+                    ${snapBtnHtml}
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button onclick="startEditEvent('${ev.id}')" title="Edit waypoint" class="text-slate-400 hover:text-amber-300 px-1">✏️</button>
+                    <button onclick="deleteEvent('${ev.id}')" title="Delete waypoint" class="text-slate-500 hover:text-rose-400 px-1">🗑</button>
+                  </div>
+                </div>
+              `;
+            }).join("");
 
         return `
           <div class="bg-slate-900 border ${active ? "border-slate-600" : "border-slate-800 opacity-65"} rounded-lg p-2.5 text-xs transition">
@@ -915,6 +1189,7 @@
                 <div class="truncate">
                   <div class="font-bold text-slate-100 truncate">
                     ${escapeHtml(p.name)} <span class="text-slate-400 font-normal">(${p.birthYear}–${p.deathYear})</span>
+                    ${fsLinkHtml}
                   </div>
                   <div class="text-[11px] text-slate-400 truncate">
                     ${active ? `📍 ${escapeHtml(active.place)} (Age ${active.age})` : `Not alive in ${currentYear}`} • ${pEvents.length} waypoints
@@ -932,7 +1207,7 @@
             ${isExpanded ? `
               <div class="mt-2.5 pt-2.5 border-t border-slate-800 space-y-2">
                 <div class="flex items-center justify-between text-[11px] text-slate-400">
-                  <span>FS ID: <strong class="text-slate-200">${escapeHtml(p.fsId || "None")}</strong></span>
+                  <span>FS ID: ${p.fsId ? `<a href="https://www.familysearch.org/tree/person/details/${encodeURIComponent(p.fsId)}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:text-sky-300 underline font-semibold">🔗 ${escapeHtml(p.fsId)}</a>` : `<strong class="text-slate-200">None</strong>`}</span>
                   <button onclick="quickAddWaypointFor('${p.id}')" class="text-emerald-400 hover:text-emerald-300 font-semibold">+ Add Waypoint</button>
                 </div>
                 ${relBadges ? `<div class="flex flex-wrap gap-1">${relBadges}</div>` : ""}
@@ -1079,7 +1354,7 @@
       map.flyTo([lat, lng], 8);
     }
 
-    function showJourneyCard(info) {
+    function showJourneyCard(info, evFrom, evTo) {
       const card = document.getElementById("journeyCard");
       document.getElementById("jcBadge").textContent = `${info.personName} (${info.years})`;
       document.getElementById("jcTitle").textContent = `${info.fromPlace.split(",")[0]} ➔ ${info.toPlace.split(",")[0]}`;
@@ -1088,6 +1363,35 @@
       document.getElementById("jcMode").textContent = info.mode;
       document.getElementById("jcTime").textContent = info.timeStr;
       document.getElementById("jcContext").textContent = info.context;
+
+      const actionsEl = document.getElementById("jcActions");
+      if (actionsEl) {
+        if (evFrom && evTo && !isOceanCrossing(evFrom, evTo)) {
+          const hasTerrain = evTo.routeGeometry && evTo.routeGeometry.length > 1;
+          actionsEl.innerHTML = `
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="snapSegmentToTerrain('${evFrom.id}', '${evTo.id}', this)"
+                class="flex-1 bg-sky-600/90 hover:bg-sky-500 text-white font-semibold py-1.5 px-2.5 rounded text-[11px] transition flex items-center justify-center gap-1">
+                🥾 ${hasTerrain ? "Re-Snap Overland Terrain (OSRM)" : "Snap to Overland Terrain (OSRM)"}
+              </button>
+              ${hasTerrain ? `
+                <button type="button" onclick="clearSegmentTerrain('${evFrom.id}', '${evTo.id}')"
+                  class="bg-slate-800 hover:bg-rose-900/70 text-slate-300 hover:text-white py-1.5 px-2 rounded text-[11px] border border-slate-700" title="Reset to straight line">
+                  ↺ Reset
+                </button>
+              ` : ""}
+            </div>
+          `;
+          actionsEl.classList.remove("hidden");
+        } else if (evFrom && evTo && isOceanCrossing(evFrom, evTo)) {
+          actionsEl.innerHTML = `<div class="text-[11px] text-sky-300 flex items-center gap-1">🌊 Curved Geodesic Ocean Arc (30-pt Bezier)</div>`;
+          actionsEl.classList.remove("hidden");
+        } else {
+          actionsEl.innerHTML = "";
+          actionsEl.classList.add("hidden");
+        }
+      }
+
       card.classList.remove("hidden");
     }
 
@@ -1197,7 +1501,14 @@
 
       if (editId) {
         const idx = appData.events.findIndex((ev) => ev.id === editId);
-        if (idx !== -1) appData.events[idx] = evPayload;
+        if (idx !== -1) {
+          const prev = appData.events[idx];
+          if (prev.lat === evPayload.lat && prev.lng === evPayload.lng && prev.routeGeometry) {
+            evPayload.routeGeometry = prev.routeGeometry;
+            evPayload.routeDistanceMiles = prev.routeDistanceMiles;
+          }
+          appData.events[idx] = evPayload;
+        }
       } else {
         appData.events.push(evPayload);
       }
@@ -1785,26 +2096,281 @@
       a.click();
     }
 
+    function openPasteJsonModal(statusMsg = "") {
+      const statusEl = document.getElementById("pasteModalFileStatus");
+      if (statusEl) statusEl.textContent = statusMsg;
+      document.getElementById("pasteJsonModal").classList.remove("hidden");
+    }
+
+    async function copyFamilySearchPrompt() {
+      const promptEl = document.getElementById("fsExtractorPromptText");
+      const btn = document.getElementById("copyPromptBtn");
+      if (!promptEl) return;
+      try {
+        await navigator.clipboard.writeText(promptEl.textContent);
+        if (btn) {
+          const prev = btn.textContent;
+          btn.textContent = "✅ Copied Prompt to Clipboard!";
+          setTimeout(() => { btn.textContent = prev; }, 2500);
+        }
+      } catch (err) {
+        // Fallback selection copy
+        const range = document.createRange();
+        range.selectNodeContents(promptEl);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand("copy");
+        if (btn) {
+          const prev = btn.textContent;
+          btn.textContent = "✅ Copied Prompt!";
+          setTimeout(() => { btn.textContent = prev; }, 2500);
+        }
+      }
+    }
+
+    function normalizeIncomingJsonPayload(raw) {
+      let data = raw;
+      if (Array.isArray(raw)) {
+        data = { persons: raw, relationships: [], events: [] };
+      } else if (raw && !raw.persons && raw.name) {
+        // Single ancestor object with optional nested events
+        const pId = raw.id || ("p_" + (raw.fsId || Date.now()));
+        const nestedEvents = Array.isArray(raw.events)
+          ? raw.events.map((ev, i) => ({ ...ev, personId: ev.personId || pId, id: ev.id || `e_${pId}_${i}` }))
+          : [];
+        data = {
+          persons: [{
+            id: pId,
+            name: raw.name,
+            fsId: raw.fsId || "",
+            birthYear: parseInt(raw.birthYear, 10) || 1800,
+            deathYear: parseInt(raw.deathYear, 10) || 1875,
+            branchColor: raw.branchColor || "#38bdf8"
+          }],
+          relationships: Array.isArray(raw.relationships) ? raw.relationships : [],
+          events: nestedEvents
+        };
+      }
+
+      if (!data || !Array.isArray(data.persons)) return null;
+
+      const persons = [];
+      const events = Array.isArray(data.events) ? [...data.events] : [];
+      const relationships = Array.isArray(data.relationships) ? [...data.relationships] : [];
+
+      data.persons.forEach((p, idx) => {
+        const pId = p.id || `p_imp_${Date.now()}_${idx}`;
+        persons.push({
+          id: pId,
+          name: (p.name || "Unknown Ancestor").trim(),
+          fsId: (p.fsId || "").trim(),
+          birthYear: parseInt(p.birthYear, 10) || 1800,
+          deathYear: parseInt(p.deathYear, 10) || ((parseInt(p.birthYear, 10) || 1800) + 72),
+          branchColor: p.branchColor || "#38bdf8"
+        });
+        if (Array.isArray(p.events)) {
+          p.events.forEach((ev, evIdx) => {
+            events.push({
+              ...ev,
+              id: ev.id || `e_imp_${pId}_${evIdx}`,
+              personId: ev.personId || pId
+            });
+          });
+        }
+      });
+
+      const normalizedEvents = events.map((ev, idx) => {
+        let lat = parseFloat(ev.lat);
+        let lng = parseFloat(ev.lng);
+        let needsGeocode = Boolean(ev.needsGeocode);
+        if (isNaN(lat) || isNaN(lng)) {
+          const fast = lookupFastGazetteer(ev.place);
+          if (fast) {
+            lat = fast.lat;
+            lng = fast.lng;
+          } else {
+            lat = 40.0;
+            lng = -89.0;
+            needsGeocode = true;
+          }
+        }
+        return {
+          id: ev.id || `e_imp_${Date.now()}_${idx}`,
+          personId: ev.personId,
+          type: (ev.type || "Residence / Census").trim(),
+          year: parseInt(ev.year, 10) || 1850,
+          place: (ev.place || "Unknown Place").trim(),
+          lat,
+          lng,
+          transport: ev.transport || "Auto",
+          notes: (ev.notes || "").trim(),
+          ...(ev.routeGeometry ? { routeGeometry: ev.routeGeometry } : {}),
+          ...(ev.routeDistanceMiles ? { routeDistanceMiles: ev.routeDistanceMiles } : {}),
+          ...(needsGeocode ? { needsGeocode: true } : {})
+        };
+      });
+
+      return { persons, relationships, events: normalizedEvents };
+    }
+
+    async function applyImportedDataset(rawObj, mode = "merge") {
+      const normalized = normalizeIncomingJsonPayload(rawObj);
+      if (!normalized || normalized.persons.length === 0) {
+        alert("Invalid Ancestor GeoTracker JSON structure (no ancestors found).");
+        return false;
+      }
+
+      if (mode === "replace") {
+        appData = normalized;
+      } else {
+        // Non-destructive MERGE: deduplicate people by fsId or (name + birthYear)
+        const idMap = new Map();
+
+        normalized.persons.forEach((incP, idx) => {
+          const incFs = (incP.fsId || "").trim().toUpperCase();
+          const incName = incP.name.trim().toLowerCase();
+          const incBirth = Number(incP.birthYear);
+
+          const existing = appData.persons.find((ex) => {
+            const exFs = (ex.fsId || "").trim().toUpperCase();
+            if (incFs && exFs && incFs === exFs) return true;
+            return ex.name.trim().toLowerCase() === incName && Number(ex.birthYear) === incBirth;
+          });
+
+          if (existing) {
+            idMap.set(incP.id, existing.id);
+            if (!existing.fsId && incP.fsId) existing.fsId = incP.fsId;
+            if (!existing.deathYear && incP.deathYear) existing.deathYear = incP.deathYear;
+            if (!existing.branchColor && incP.branchColor) existing.branchColor = incP.branchColor;
+          } else {
+            const idCollision = appData.persons.some((ex) => ex.id === incP.id);
+            const finalId = idCollision ? `p_${Date.now()}_${idx}` : incP.id;
+            idMap.set(incP.id, finalId);
+            appData.persons.push({ ...incP, id: finalId });
+          }
+        });
+
+        // Merge events (deduplicating per person by type + year)
+        normalized.events.forEach((incEv, idx) => {
+          const targetPersonId = idMap.get(incEv.personId) || incEv.personId;
+          const incTypeNorm = (incEv.type || "").trim().toLowerCase();
+          const incYearNum = Number(incEv.year);
+
+          const dupEvent = appData.events.find(
+            (exEv) =>
+              exEv.personId === targetPersonId &&
+              (exEv.type || "").trim().toLowerCase() === incTypeNorm &&
+              Number(exEv.year) === incYearNum
+          );
+
+          if (dupEvent) {
+            if ((!dupEvent.notes || dupEvent.notes === "Imported from GEDCOM") && incEv.notes) {
+              dupEvent.notes = incEv.notes;
+            }
+            if (incEv.routeGeometry && !dupEvent.routeGeometry) {
+              dupEvent.routeGeometry = incEv.routeGeometry;
+              dupEvent.routeDistanceMiles = incEv.routeDistanceMiles;
+            }
+            if (dupEvent.needsGeocode && !incEv.needsGeocode && !isNaN(incEv.lat) && !isNaN(incEv.lng)) {
+              dupEvent.lat = incEv.lat;
+              dupEvent.lng = incEv.lng;
+              delete dupEvent.needsGeocode;
+            }
+          } else {
+            const evCollision = appData.events.some((exEv) => exEv.id === incEv.id);
+            const finalEvId = evCollision ? `e_${Date.now()}_${idx}` : incEv.id;
+            appData.events.push({
+              ...incEv,
+              id: finalEvId,
+              personId: targetPersonId
+            });
+          }
+        });
+
+        // Merge relationships (deduplicating by person pair & type)
+        normalized.relationships.forEach((incRel, idx) => {
+          const p1 = idMap.get(incRel.person1Id) || incRel.person1Id;
+          const p2 = idMap.get(incRel.person2Id) || incRel.person2Id;
+          if (!p1 || !p2 || p1 === p2) return;
+          const relType = (incRel.type || "spouse").trim().toLowerCase();
+
+          const exists = appData.relationships.some((exRel) => {
+            const exType = (exRel.type || "").trim().toLowerCase();
+            if (relType === "spouse" && exType === "spouse") {
+              return (
+                (exRel.person1Id === p1 && exRel.person2Id === p2) ||
+                (exRel.person1Id === p2 && exRel.person2Id === p1)
+              );
+            }
+            return exRel.person1Id === p1 && exRel.person2Id === p2 && exType === relType;
+          });
+
+          if (!exists) {
+            appData.relationships.push({
+              id: `r_${Date.now()}_${idx}`,
+              person1Id: p1,
+              person2Id: p2,
+              type: incRel.type || "spouse"
+            });
+          }
+        });
+      }
+
+      // Expand timeline slider range if imported events fall outside current bounds
+      const allYears = appData.events.map((ev) => Number(ev.year)).filter((y) => y > 1000 && y < 2100);
+      if (allYears.length > 0) {
+        const minY = Math.min(...allYears);
+        const maxY = Math.max(...allYears);
+        const curMin = parseInt(document.getElementById("sliderMinInput").value, 10) || 1750;
+        const curMax = parseInt(document.getElementById("sliderMaxInput").value, 10) || 1950;
+        if (minY < curMin) document.getElementById("sliderMinInput").value = minY - 5;
+        if (maxY > curMax) document.getElementById("sliderMaxInput").value = maxY + 5;
+        updateSliderBounds();
+      }
+
+      saveData();
+      refreshDropdowns();
+      updateMapForYear();
+      fitAllMarkers();
+      await runBackgroundGedcomGeocoding();
+      return true;
+    }
+
+    async function processPastedJSON() {
+      const rawText = (document.getElementById("pasteJsonTextarea").value || "").trim();
+      if (!rawText) return alert("Please paste JSON or load a JSON file first.");
+      // Strip optional markdown code fences if copied from Gemini / ChatGPT
+      const cleaned = rawText
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+      try {
+        const parsed = JSON.parse(cleaned);
+        const modeEl = document.querySelector('input[name="jsonImportMode"]:checked');
+        const mode = modeEl ? modeEl.value : "merge";
+        const ok = await applyImportedDataset(parsed, mode);
+        if (ok) {
+          document.getElementById("pasteJsonTextarea").value = "";
+          document.getElementById("pasteModalFileStatus").textContent = "";
+          document.getElementById("pasteJsonModal").classList.add("hidden");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Could not parse JSON. Make sure it is valid JSON syntax.");
+      }
+    }
+
     function importJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const imported = JSON.parse(e.target.result);
-          if (imported.persons && imported.events) {
-            appData = {
-              persons: imported.persons || [],
-              relationships: imported.relationships || [],
-              events: imported.events || []
-            };
-            saveData();
-            refreshDropdowns();
-            updateMapForYear();
-            fitAllMarkers();
-          } else {
-            alert("Invalid Ancestor GeoTracker JSON structure.");
-          }
+          const text = e.target.result;
+          JSON.parse(text); // Validate JSON before opening modal
+          document.getElementById("pasteJsonTextarea").value = text;
+          openPasteJsonModal(`📄 Loaded "${file.name}" — Choose Merge or Replace above, then click Import.`);
         } catch (err) {
           alert("Could not parse JSON file.");
         }
@@ -1827,7 +2393,15 @@
           </Placemark>`;
         });
         if (pEvents.length > 1) {
-          const coords = pEvents.map((e) => `${e.lng},${e.lat},0`).join(" ");
+          const allPts = [];
+          for (let i = 0; i < pEvents.length - 1; i++) {
+            const seg = getSegmentCoordinates(pEvents[i], pEvents[i + 1]);
+            seg.forEach((pt, idx) => {
+              if (i > 0 && idx === 0) return;
+              allPts.push(`${pt[1]},${pt[0]},0`);
+            });
+          }
+          const coords = allPts.join(" ");
           placemarks += `
           <Placemark>
             <name>${escapeXml(p.name)} GeoTracker Trail</name>
