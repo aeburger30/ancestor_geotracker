@@ -81,11 +81,8 @@
         📄 Import FS PDF
         <input type="file" id="importFsPdfFile" accept=".pdf,application/pdf" class="hidden" onchange="importFamilySearchPDF(event)" />
       </label>
-      <button onclick="loadBurgerFamilyPreset()" class="bg-amber-500/90 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded transition" title="Load or merge Frederick Burger (KVG8-YVV) & Mabel Family Group">
+      <button onclick="loadBurgerFamilyPreset()" class="bg-amber-500/90 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded transition" title="Load verbatim Frederick Burger (KVG8-YVV) & Mabel (GSRP-RWT) Family Group Record">
         🌲 Load Burger Family (KVG8-YVV)
-      </button>
-      <button onclick="merge1800NyCandidates()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded transition" title="Merge 1800 NY Census & Dutch Reformed Church Burger parental candidates (Ulster, Dutchess & Delaware Counties)">
-        🔬 Merge 1800 NY Candidates
       </button>
       <label class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-semibold px-3 py-1.5 rounded cursor-pointer transition" title="Import standard GEDCOM (.ged) family tree">
         📜 Import GEDCOM
@@ -163,13 +160,16 @@
         <!-- Layer Toggles & Basemap -->
         <div class="bg-slate-700/40 rounded-lg p-3 space-y-2 text-xs">
           <div class="flex items-center justify-between mb-1">
-            <span class="font-semibold text-slate-300">GeoTracker Layers</span>
+            <span class="font-semibold text-slate-300">GeoTracker Layers & Strict Mode</span>
             <button onclick="fitAllMarkers()" class="text-[11px] text-sky-400 hover:text-sky-300 font-medium">🗺️ Fit All Trails</button>
           </div>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span>Interpolate In-Between Years</span>
-            <input type="checkbox" id="toggleGhost" checked onchange="updateMapForYear()" class="accent-amber-400" />
-          </label>
+          <div class="space-y-1 pb-1 border-b border-slate-700/80">
+            <label for="trackingModeSelect" class="block text-[11px] font-semibold text-amber-300">📍 Location Tracking Mode (No Guessing):</label>
+            <select id="trackingModeSelect" onchange="updateMapForYear()" class="w-full bg-slate-900 border border-amber-500/40 rounded px-2 py-1 text-[11px] text-slate-100 font-medium">
+              <option value="hold" selected>📌 Lock to Last Documented Place</option>
+              <option value="exact">🎯 Show Only on Exact Documented Years</option>
+            </select>
+          </div>
           <label class="flex items-center justify-between cursor-pointer">
             <span>Show Spousal / Parent Links</span>
             <input type="checkbox" id="toggleRelLines" checked onchange="updateMapForYear()" class="accent-amber-400" />
@@ -185,10 +185,10 @@
           <div class="pt-1 flex items-center justify-between">
             <span class="text-slate-400">Map Style:</span>
             <select id="basemapSelect" onchange="changeBasemap(this.value)" class="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-[11px] text-slate-200">
-              <option value="voyager">Carto Voyager (Historical Clean)</option>
-              <option value="topo">Topographic / Physical Relief</option>
-              <option value="satellite">Satellite World Imagery</option>
-              <option value="dark">Dark Matter GIS</option>
+              <option value="osm" selected>🗺️ OpenStreetMap (Standard)</option>
+              <option value="usgs">📜 USGS Topo &amp; Relief</option>
+              <option value="topo">⛰️ Topographic Contours</option>
+              <option value="sat">🛰️ Satellite Imagery</option>
             </select>
           </div>
         </div>
@@ -405,16 +405,22 @@
   </div>
 
   <!-- BOTTOM TIME SLIDER BAR -->
-  <footer class="bg-slate-800 border-t border-slate-700 px-6 py-3 z-20 flex items-center gap-4">
+  <footer class="bg-slate-800 border-t border-slate-700 px-6 py-3 z-20 flex flex-wrap items-center gap-3">
     <div class="flex items-center gap-1.5 shrink-0">
-      <button onclick="stepYear(-1)" title="Previous Year" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-2 rounded-lg text-xs font-bold transition">
+      <button onclick="stepRecordYear(-1)" title="Jump to Previous Documented Record Year" class="bg-slate-700 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/40 px-2.5 py-2 rounded-lg text-xs font-bold transition">
+        ⏮ Prev Record Year
+      </button>
+      <button onclick="stepYear(-1)" title="Previous Year (-1 yr)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-2 rounded-lg text-xs font-bold transition">
         ◀
       </button>
-      <button id="playBtn" onclick="togglePlay()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-1.5 shrink-0 transition">
+      <button id="playBtn" onclick="togglePlay()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold px-3.5 py-2 rounded-lg text-sm flex items-center gap-1.5 shrink-0 transition">
         ▶ Play
       </button>
-      <button onclick="stepYear(1)" title="Next Year" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-2 rounded-lg text-xs font-bold transition">
+      <button onclick="stepYear(1)" title="Next Year (+1 yr)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-2 rounded-lg text-xs font-bold transition">
         ▶
+      </button>
+      <button onclick="stepRecordYear(1)" title="Jump to Next Documented Record Year" class="bg-slate-700 hover:bg-amber-500 hover:text-slate-950 text-amber-300 border border-amber-500/40 px-2.5 py-2 rounded-lg text-xs font-bold transition">
+        Next Record Year ⏭
       </button>
       <select id="playSpeed" onchange="updatePlaySpeed()" title="Playback speed" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-2 text-xs text-slate-300">
         <option value="650">0.5x</option>
@@ -577,9 +583,6 @@ Rules:
           <button type="button" onclick="preloadBurgerFamilyIntoModal()" class="text-amber-400 hover:text-amber-300 font-semibold underline">
             🌲 Load Burger Family (KVG8-YVV) JSON
           </button>
-          <button type="button" onclick="merge1800NyCandidates()" class="text-purple-400 hover:text-purple-300 font-semibold underline">
-            🔬 Merge 1800 NY Candidates
-          </button>
         </div>
         <div class="flex gap-2">
           <button type="button" onclick="toggleModal('pasteJsonModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded">
@@ -632,168 +635,108 @@ Rules:
 
     // =========================================================================
     // 1B. BUILT-IN BURGER FAMILY GROUP (KVG8-YVV) PRESET DATASET
+    //     Strictly restricted to verbatim places & dates in 20261025FamilyKVG8-YVV.pdf
     // =========================================================================
     const BURGER_FAMILY_DATA = {
       persons: [
         { id: "p_KVG8-YVV", name: "Frederick Burger", fsId: "KVG8-YVV", birthYear: 1800, deathYear: 1871, branchColor: "#fb923c" },
         { id: "p_GSRP-RWT", name: "Mabel", fsId: "GSRP-RWT", birthYear: 1806, deathYear: 1854, branchColor: "#f43f5e" },
-        { id: "p_MCLH-1Q2", name: "George Burger", fsId: "MCLH-1Q2", birthYear: 1829, deathYear: 1878, branchColor: "#38bdf8" },
-        { id: "p_ann_marvin", name: "Ann Jane Marvin", fsId: "KVG8-M01", birthYear: 1833, deathYear: 1860, branchColor: "#a855f7" },
-        { id: "p_phoebe_marvin", name: "Phoebe Jane Marvin", fsId: "KVG8-M02", birthYear: 1838, deathYear: 1905, branchColor: "#a855f7" },
-        { id: "p_william_burger", name: "William Burger", fsId: "KVG8-YWP", birthYear: 1832, deathYear: 1898, branchColor: "#34d399" },
-        { id: "p_GSPD-4TX", name: "Jane Burger", fsId: "GSPD-4TX", birthYear: 1835, deathYear: 1901, branchColor: "#34d399" },
-        { id: "p_GSP8-5DZ", name: "Sophia Burger", fsId: "GSP8-5DZ", birthYear: 1841, deathYear: 1912, branchColor: "#38bdf8" },
-        { id: "p_truman_bennett", name: "Truman W. Bennett", fsId: "KVG8-B01", birthYear: 1836, deathYear: 1908, branchColor: "#fb923c" }
+        { id: "p_KJWC-B8Q", name: "Phoebe Jane Marvin", fsId: "KJWC-B8Q", birthYear: 1831, deathYear: 1905, branchColor: "#a855f7" },
+        { id: "p_KVLF-ZFX", name: "George Burger", fsId: "KVLF-ZFX", birthYear: 1820, deathYear: 1878, branchColor: "#38bdf8" },
+        { id: "p_KJWC-148", name: "Ann Jane Marvin", fsId: "KJWC-148", birthYear: 1830, deathYear: 1878, branchColor: "#a855f7" },
+        { id: "p_GSPD-MP2", name: "William Burger", fsId: "GSPD-MP2", birthYear: 1827, deathYear: 1883, branchColor: "#34d399" },
+        { id: "p_MCLH-1Q2", name: "George Burger (b. 1831)", fsId: "MCLH-1Q2", birthYear: 1831, deathYear: 1878, branchColor: "#38bdf8" },
+        { id: "p_GSPD-4TX", name: "Jane Burger", fsId: "GSPD-4TX", birthYear: 1832, deathYear: 1900, branchColor: "#34d399" },
+        { id: "p_GSP8-5DZ", name: "Sophia Burger", fsId: "GSP8-5DZ", birthYear: 1836, deathYear: 1872, branchColor: "#38bdf8" },
+        { id: "p_GXQ4-W6J", name: "Truman W. Bennett", fsId: "GXQ4-W6J", birthYear: 1833, deathYear: 1908, branchColor: "#fb923c" }
       ],
       relationships: [
         { id: "r_bf_1", person1Id: "p_KVG8-YVV", person2Id: "p_GSRP-RWT", type: "spouse" },
-        { id: "r_bf_2", person1Id: "p_KVG8-YVV", person2Id: "p_MCLH-1Q2", type: "parent" },
-        { id: "r_bf_3", person1Id: "p_GSRP-RWT", person2Id: "p_MCLH-1Q2", type: "parent" },
-        { id: "r_bf_4", person1Id: "p_KVG8-YVV", person2Id: "p_william_burger", type: "parent" },
-        { id: "r_bf_5", person1Id: "p_GSRP-RWT", person2Id: "p_william_burger", type: "parent" },
-        { id: "r_bf_6", person1Id: "p_KVG8-YVV", person2Id: "p_GSPD-4TX", type: "parent" },
-        { id: "r_bf_7", person1Id: "p_GSRP-RWT", person2Id: "p_GSPD-4TX", type: "parent" },
-        { id: "r_bf_8", person1Id: "p_KVG8-YVV", person2Id: "p_GSP8-5DZ", type: "parent" },
-        { id: "r_bf_9", person1Id: "p_GSRP-RWT", person2Id: "p_GSP8-5DZ", type: "parent" },
-        { id: "r_bf_10", person1Id: "p_MCLH-1Q2", person2Id: "p_ann_marvin", type: "spouse" },
-        { id: "r_bf_11", person1Id: "p_MCLH-1Q2", person2Id: "p_phoebe_marvin", type: "spouse" },
-        { id: "r_bf_12", person1Id: "p_GSP8-5DZ", person2Id: "p_truman_bennett", type: "spouse" }
+        { id: "r_bf_2", person1Id: "p_KVG8-YVV", person2Id: "p_KJWC-B8Q", type: "spouse" },
+        { id: "r_bf_3", person1Id: "p_KVG8-YVV", person2Id: "p_KVLF-ZFX", type: "parent" },
+        { id: "r_bf_4", person1Id: "p_GSRP-RWT", person2Id: "p_KVLF-ZFX", type: "parent" },
+        { id: "r_bf_5", person1Id: "p_KVLF-ZFX", person2Id: "p_KJWC-148", type: "spouse" },
+        { id: "r_bf_6", person1Id: "p_KVG8-YVV", person2Id: "p_GSPD-MP2", type: "parent" },
+        { id: "r_bf_7", person1Id: "p_GSRP-RWT", person2Id: "p_GSPD-MP2", type: "parent" },
+        { id: "r_bf_8", person1Id: "p_KVG8-YVV", person2Id: "p_MCLH-1Q2", type: "parent" },
+        { id: "r_bf_9", person1Id: "p_GSRP-RWT", person2Id: "p_MCLH-1Q2", type: "parent" },
+        { id: "r_bf_10", person1Id: "p_KVG8-YVV", person2Id: "p_GSPD-4TX", type: "parent" },
+        { id: "r_bf_11", person1Id: "p_GSRP-RWT", person2Id: "p_GSPD-4TX", type: "parent" },
+        { id: "r_bf_12", person1Id: "p_KVG8-YVV", person2Id: "p_GSP8-5DZ", type: "parent" },
+        { id: "r_bf_13", person1Id: "p_GSRP-RWT", person2Id: "p_GSP8-5DZ", type: "parent" },
+        { id: "r_bf_14", person1Id: "p_GSP8-5DZ", person2Id: "p_GXQ4-W6J", type: "spouse" }
       ],
       events: [
-        // Frederick Burger (KVG8-YVV, 1800-1871): Kortright, Delaware Co., NY -> Chenango Co., NY (1830-1850) -> Wisconsin (1852-1871)
-        { id: "e_bf_1", personId: "p_KVG8-YVV", type: "Birth", year: 1800, place: "Kortright, Delaware, New York", lat: 42.3409, lng: -74.8002, transport: "Auto", notes: "Born in Delaware/Hudson Valley region of New York (~1800)." },
-        { id: "e_bf_2", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1830, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Stagecoach / Turnpike", notes: "1830 US Federal Census: Moved west along the Catskill Turnpike into Chenango County, New York." },
-        { id: "e_bf_3", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1840, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1840 US Federal Census in Chenango County, New York (Source: ark:/61903/1:1:XHTQ-NJK)." },
-        { id: "e_bf_4", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, NY prior to the family's 1852–1854 migration to Wisconsin." },
-        { id: "e_bf_5", personId: "p_KVG8-YVV", type: "Arrival", year: 1852, place: "Waukesha / Marquette County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "Migrated west from Chenango County, NY via the Erie Canal & Great Lakes steamer to Wisconsin (1852–1854)." },
-        { id: "e_bf_6", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1860, place: "Brooklyn, Green Lake (formerly Marquette) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "1860 US Federal Census: Residing in Green Lake County, Wisconsin (partitioned from Marquette County in 1858)." },
-        { id: "e_bf_7", personId: "p_KVG8-YVV", type: "Death / Burial", year: 1871, place: "Marquette / Green Lake County, Wisconsin, United States", lat: 43.7950, lng: -89.1350, transport: "Auto", notes: "Died in Marquette / Green Lake County, Wisconsin (1871)." },
+        // Frederick Burger (KVG8-YVV, 1800-1871) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_1", personId: "p_KVG8-YVV", type: "Birth", year: 1800, place: "Kortright, Delaware, New York, United States", lat: 42.3409, lng: -74.8002, transport: "Auto", notes: "Verbatim from Family Group Record PDF (KVG8-YVV): Born 1800 in Kortright, Delaware, New York, United States." },
+        { id: "e_bf_2", personId: "p_KVG8-YVV", type: "Marriage", year: 1819, place: "Delaware, New York, United States", lat: 42.2781, lng: -74.9160, transport: "Auto", notes: "Verbatim from Family Group Record PDF: Married Mabel (GSRP-RWT) in 1819 in Delaware, New York, United States." },
+        { id: "e_bf_3", personId: "p_KVG8-YVV", type: "Marriage", year: 1854, place: "Dartford, Green Lake, Wisconsin, United States", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Verbatim from Family Group Record PDF: Married Phoebe Jane Marvin (KJWC-B8Q) in Nov 1854 at Dartford, Green Lake, Wisconsin, United States." },
+        { id: "e_bf_4", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1860, place: "Waukesha, Waukesha, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Auto", notes: "Verbatim from Family Group Record PDF Sources: 1860 US Census in Waukesha, Waukesha, Wisconsin (Roll M653_1436, Page 245)." },
+        { id: "e_bf_5", personId: "p_KVG8-YVV", type: "Residence / Census", year: 1870, place: "Waukesha, Waukesha, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Auto", notes: "Verbatim from Family Group Record PDF Sources: 1870 US Census in Waukesha, Waukesha, Wisconsin (ark:/61903/1:1:MNS6-D8W)." },
+        { id: "e_bf_6", personId: "p_KVG8-YVV", type: "Death / Burial", year: 1871, place: "Waukesha, Waukesha, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Auto", notes: "Verbatim from Family Group Record PDF: Died 1871 in Waukesha, Waukesha, Wisconsin, United States." },
 
-        // Mabel (GSRP-RWT, 1806-1854)
-        { id: "e_bf_8", personId: "p_GSRP-RWT", type: "Birth", year: 1806, place: "Kortright, Delaware, New York", lat: 42.3409, lng: -74.8002, transport: "Auto", notes: "Born in New York (~1806, FamilySearch ID: GSRP-RWT)." },
-        { id: "e_bf_9", personId: "p_GSRP-RWT", type: "Residence / Census", year: 1830, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Stagecoach / Turnpike", notes: "Resided with husband Frederick Burger in Chenango County, New York." },
-        { id: "e_bf_10", personId: "p_GSRP-RWT", type: "Residence / Census", year: 1840, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1840 US Federal Census: Chenango County, New York (ark:/61903/1:1:XHTQ-NJK)." },
-        { id: "e_bf_11", personId: "p_GSRP-RWT", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, New York with Frederick and children." },
-        { id: "e_bf_12", personId: "p_GSRP-RWT", type: "Death / Burial", year: 1854, place: "Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Passed away in Marquette/Green Lake County, Wisconsin shortly after the 1852–1854 migration west." },
+        // Mabel (GSRP-RWT, 1806-1854) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_7", personId: "p_GSRP-RWT", type: "Birth", year: 1806, place: "Massachusetts, United States", lat: 42.3601, lng: -72.0000, transport: "Auto", notes: "Verbatim from Family Group Record PDF (GSRP-RWT): Born 1806 in Massachusetts, United States." },
+        { id: "e_bf_8", personId: "p_GSRP-RWT", type: "Marriage", year: 1819, place: "Delaware, New York, United States", lat: 42.2781, lng: -74.9160, transport: "Auto", notes: "Verbatim from Family Group Record PDF: Married Frederick Burger (KVG8-YVV) in 1819 in Delaware, New York, United States." },
 
-        // George Burger (MCLH-1Q2 / KVLF-ZFX, 1829-1878)
-        { id: "e_bf_13", personId: "p_MCLH-1Q2", type: "Birth", year: 1829, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Eldest son of Frederick & Mabel Burger, born in Chenango County, NY (FS ID: MCLH-1Q2 / KVLF-ZFX)." },
-        { id: "e_bf_14", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1840, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Raised in Chenango County, NY (1840 Census: ark:/61903/1:1:XHTQ-NJK)." },
-        { id: "e_bf_15", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, New York before heading to Wisconsin." },
-        { id: "e_bf_16", personId: "p_MCLH-1Q2", type: "Arrival", year: 1852, place: "Waukesha County, Wisconsin, United States", lat: 43.0117, lng: -88.2315, transport: "Canal Packet Boat", notes: "1878 Obituary Note: Traveled via Erie Canal & Great Lakes to Waukesha County, WI, then to Marquette/Green Lake County." },
-        { id: "e_bf_17", personId: "p_MCLH-1Q2", type: "Marriage", year: 1854, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Married first wife Ann Jane Marvin in Marquette/Green Lake County, Wisconsin." },
-        { id: "e_bf_18", personId: "p_MCLH-1Q2", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Married second wife Phoebe Jane Marvin after Ann Jane's passing." },
-        { id: "e_bf_19", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1870, place: "Winnebago / Green Lake County, Wisconsin", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1870 US Census: Residing with Phoebe Jane in the Green Lake / Winnebago region of Wisconsin." },
-        { id: "e_bf_20", personId: "p_MCLH-1Q2", type: "Death / Burial", year: 1878, place: "Berlin / Green Lake & Winnebago County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Chronicled his pioneer journey from Chenango Co., NY to Waukesha, Marquette, Green Lake, and Winnebago Counties, WI; survived by widow Phoebe Jane Marvin and siblings William, Jane, and Sophia (Truman W. Bennett)." },
+        // Phoebe Jane Marvin (KJWC-B8Q, 1831-1905) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_9", personId: "p_KJWC-B8Q", type: "Marriage", year: 1854, place: "Dartford, Green Lake, Wisconsin, United States", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Verbatim from Family Group Record PDF (KJWC-B8Q): Married Nov 1854 in Dartford, Green Lake, Wisconsin, United States." },
 
-        // Ann Jane Marvin (1833-1860)
-        { id: "e_bf_21", personId: "p_ann_marvin", type: "Birth", year: 1833, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Born in New York prior to moving west to Wisconsin." },
-        { id: "e_bf_22", personId: "p_ann_marvin", type: "Marriage", year: 1854, place: "Green Lake / Marquette County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "First wife of George Burger (MCLH-1Q2)." },
-        { id: "e_bf_23", personId: "p_ann_marvin", type: "Death / Burial", year: 1860, place: "Green Lake County, Wisconsin, United States", lat: 43.8441, lng: -88.9598, transport: "Auto", notes: "Died in Green Lake County, Wisconsin." },
+        // George Burger (KVLF-ZFX, 1820-1878) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_10", personId: "p_KVLF-ZFX", type: "Birth", year: 1820, place: "New York City, New York, New York", lat: 40.7128, lng: -74.0060, transport: "Auto", notes: "Verbatim from Family Group Record PDF (KVLF-ZFX): Born 8 Jul 1820 in New York City, New York, New York." },
+        { id: "e_bf_11", personId: "p_KVLF-ZFX", type: "Marriage", year: 1852, place: "Montello, Marquette, Wisconsin, United States", lat: 43.7919, lng: -89.3293, transport: "Canal Packet Boat", notes: "Verbatim from Family Group Record PDF: Married Ann Jane Marvin (KJWC-148) on 8 Nov 1852 in Montello, Marquette, Wisconsin, United States." },
+        { id: "e_bf_12", personId: "p_KVLF-ZFX", type: "Land Deed / Homestead", year: 1853, place: "Shields, Marquette, Wisconsin, United States", lat: 43.8547, lng: -89.2618, transport: "Auto", notes: "Verbatim from Montello Express Obituary in Family Group Record PDF: Settled Oct 1853 in Shields, Marquette, Wisconsin, United States." },
+        { id: "e_bf_13", personId: "p_KVLF-ZFX", type: "Death / Burial", year: 1878, place: "Mecan / Shields, Marquette, Wisconsin, United States", lat: 43.8358, lng: -89.2104, transport: "Auto", notes: "Verbatim from Family Group Record PDF & Montello Express Obituary: Died 18 Jan 1878 in Mecan / Shields, Marquette, Wisconsin, United States." },
 
-        // Phoebe Jane Marvin (1838-1905)
-        { id: "e_bf_24", personId: "p_phoebe_marvin", type: "Birth", year: 1838, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Born in New York." },
-        { id: "e_bf_25", personId: "p_phoebe_marvin", type: "Marriage", year: 1862, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9650, lng: -88.7800, transport: "Auto", notes: "Second wife of George Burger (MCLH-1Q2)." },
-        { id: "e_bf_26", personId: "p_phoebe_marvin", type: "Residence / Census", year: 1878, place: "Berlin / Winnebago & Green Lake County, Wisconsin", lat: 43.9680, lng: -88.9434, transport: "Auto", notes: "1878 Obituary Note: Surviving widow of George Burger." },
+        // Ann Jane Marvin (KJWC-148) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_14", personId: "p_KJWC-148", type: "Marriage", year: 1852, place: "Montello, Marquette, Wisconsin, United States", lat: 43.7919, lng: -89.3293, transport: "Auto", notes: "Verbatim from Family Group Record PDF (KJWC-148): Married George Burger (KVLF-ZFX) on 8 Nov 1852 in Montello, Marquette, Wisconsin, United States." },
 
-        // William Burger (1832-1898)
-        { id: "e_bf_27", personId: "p_william_burger", type: "Birth", year: 1832, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Son of Frederick & Mabel Burger, born in Chenango County, New York." },
-        { id: "e_bf_28", personId: "p_william_burger", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, NY." },
-        { id: "e_bf_29", personId: "p_william_burger", type: "Arrival", year: 1852, place: "Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Migrated from Chenango County, NY to Marquette/Green Lake County, Wisconsin (1852–1854)." },
-        { id: "e_bf_30", personId: "p_william_burger", type: "Residence / Census", year: 1878, place: "Green Lake County, Wisconsin, United States", lat: 43.8044, lng: -89.0437, transport: "Auto", notes: "Mentioned in brother George Burger's 1878 obituary." },
+        // William Burger (GSPD-MP2, 1827-1883) — Verbatim state-level only in PDF
+        { id: "e_bf_15", personId: "p_GSPD-MP2", type: "Birth", year: 1827, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF (GSPD-MP2): Born 1827 in New York, United States (state-level only in PDF)." },
+        { id: "e_bf_16", personId: "p_GSPD-MP2", type: "Residence / Census", year: 1850, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1850 Census in New York, United States (state-level only in PDF)." },
 
-        // Jane Burger (GSPD-4TX, 1835-1901)
-        { id: "e_bf_31", personId: "p_GSPD-4TX", type: "Birth", year: 1835, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Daughter of Frederick & Mabel Burger, born in Chenango County, NY (FS ID: GSPD-4TX)." },
-        { id: "e_bf_32", personId: "p_GSPD-4TX", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, New York." },
-        { id: "e_bf_33", personId: "p_GSPD-4TX", type: "Arrival", year: 1853, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Migrated west with Burger family from Chenango County, NY to Wisconsin (1852–1854)." },
+        // George Burger (MCLH-1Q2, b. 1831) — Verbatim state-level only in PDF
+        { id: "e_bf_17", personId: "p_MCLH-1Q2", type: "Birth", year: 1831, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF (MCLH-1Q2): Born 1831 in New York, United States (state-level only in PDF)." },
+        { id: "e_bf_18", personId: "p_MCLH-1Q2", type: "Residence / Census", year: 1850, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1850 Census in New York, United States (state-level only in PDF)." },
 
-        // Sophia Burger (GSP8-5DZ, 1841-1912)
-        { id: "e_bf_34", personId: "p_GSP8-5DZ", type: "Birth", year: 1841, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Youngest daughter of Frederick & Mabel Burger, born in Chenango County, NY (FS ID: GSP8-5DZ)." },
-        { id: "e_bf_35", personId: "p_GSP8-5DZ", type: "Residence / Census", year: 1850, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "1850 Census cluster in Chenango County, NY (age 9)." },
-        { id: "e_bf_36", personId: "p_GSP8-5DZ", type: "Arrival", year: 1853, place: "Brooklyn, Marquette (now Green Lake) County, Wisconsin", lat: 43.8441, lng: -88.9598, transport: "Canal Packet Boat", notes: "Traveled with parents from Chenango County, NY to Marquette/Green Lake County, Wisconsin." },
-        { id: "e_bf_37", personId: "p_GSP8-5DZ", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Truman W. Bennett in Wisconsin." },
-        { id: "e_bf_38", personId: "p_GSP8-5DZ", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "1878 Obituary Note: Referenced alongside husband Truman W. Bennett in Winnebago/Green Lake County." },
+        // Jane Burger (GSPD-4TX, b. 1832) — Verbatim state-level only in PDF
+        { id: "e_bf_19", personId: "p_GSPD-4TX", type: "Birth", year: 1832, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF (GSPD-4TX): Born 1832 in New York, United States (state-level only in PDF)." },
+        { id: "e_bf_20", personId: "p_GSPD-4TX", type: "Residence / Census", year: 1850, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1850 Census in New York, United States (state-level only in PDF)." },
 
-        // Truman W. Bennett (1836-1908)
-        { id: "e_bf_39", personId: "p_truman_bennett", type: "Birth", year: 1836, place: "Chenango County, New York (1830–1850 Census Cluster)", lat: 42.4459, lng: -75.6099, transport: "Auto", notes: "Born in central New York prior to settling in Wisconsin." },
-        { id: "e_bf_40", personId: "p_truman_bennett", type: "Marriage", year: 1860, place: "Green Lake / Winnebago County, Wisconsin", lat: 43.9200, lng: -88.8800, transport: "Auto", notes: "Married Sophia Burger (GSP8-5DZ) in central Wisconsin." },
-        { id: "e_bf_41", personId: "p_truman_bennett", type: "Residence / Census", year: 1878, place: "Winnebago County, Wisconsin, United States", lat: 44.0247, lng: -88.5426, transport: "Auto", notes: "Resided in Winnebago/Green Lake County, Wisconsin with wife Sophia (Burger) Bennett." }
+        // Sophia Burger (GSP8-5DZ, 1836-1872) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_21", personId: "p_GSP8-5DZ", type: "Birth", year: 1836, place: "New York, United States", lat: 42.6526, lng: -73.7562, transport: "Auto", notes: "Verbatim from Family Group Record PDF (GSP8-5DZ): Born 1836 in New York, United States." },
+        { id: "e_bf_22", personId: "p_GSP8-5DZ", type: "Marriage", year: 1859, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Canal Packet Boat", notes: "Verbatim from Family Group Record PDF: Married Truman W. Bennett (GXQ4-W6J) in 1859 in Menasha, Winnebago, Wisconsin, United States." },
+        { id: "e_bf_23", personId: "p_GSP8-5DZ", type: "Residence / Census", year: 1860, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1860 US Census in Menasha, Winnebago, Wisconsin, United States." },
+        { id: "e_bf_24", personId: "p_GSP8-5DZ", type: "Residence / Census", year: 1870, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1870 US Census in Menasha, Winnebago, Wisconsin, United States." },
+        { id: "e_bf_25", personId: "p_GSP8-5DZ", type: "Death / Burial", year: 1872, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Auto", notes: "Verbatim from Family Group Record PDF: Died 25 Feb 1872 in Menasha, Winnebago, Wisconsin, United States." },
+
+        // Truman W. Bennett (GXQ4-W6J) — Verbatim from 20261025FamilyKVG8-YVV.pdf
+        { id: "e_bf_26", personId: "p_GXQ4-W6J", type: "Marriage", year: 1859, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Auto", notes: "Verbatim from Family Group Record PDF (GXQ4-W6J): Married Sophia Burger (GSP8-5DZ) in 1859 in Menasha, Winnebago, Wisconsin, United States." },
+        { id: "e_bf_27", personId: "p_GXQ4-W6J", type: "Residence / Census", year: 1860, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1860 US Census in Menasha, Winnebago, Wisconsin, United States." },
+        { id: "e_bf_28", personId: "p_GXQ4-W6J", type: "Residence / Census", year: 1870, place: "Menasha, Winnebago, Wisconsin, United States", lat: 44.2022, lng: -88.4465, transport: "Auto", notes: "Verbatim from Family Group Record PDF: 1870 US Census in Menasha, Winnebago, Wisconsin, United States." }
       ]
     };
 
     // =========================================================================
-    // 1C. 1800 NY CENSUS & HUDSON VALLEY / DELAWARE COUNTY CANDIDATES DATASET
-    // =========================================================================
-    const NY_1800_CANDIDATES_DATA = {
-      persons: [
-        { id: "p_WM_BURGER_1800", name: "William Burger", fsId: "NY1800-WM1", birthYear: 1768, deathYear: 1835, branchColor: "#a855f7" },
-        { id: "p_EZEK_BURGER_1800", name: "Ezekiel Burger", fsId: "NY1800-EZ1", birthYear: 1765, deathYear: 1830, branchColor: "#34d399" },
-        { id: "p_HIER_BURGER_1724", name: "Hieronymus Burger", fsId: "NY1724-HB1", birthYear: 1724, deathYear: 1802, branchColor: "#38bdf8" },
-        { id: "p_HELENA_SLUITER", name: "Helena Sluiter", fsId: "NY1728-HS1", birthYear: 1728, deathYear: 1798, branchColor: "#f43f5e" },
-        { id: "p_JOHN_BURGER_ULSTER", name: "John Burger", fsId: "NY1760-JB1", birthYear: 1760, deathYear: 1828, branchColor: "#fb923c" },
-        { id: "p_PETER_BURGER_DUTCH", name: "Peter Burger", fsId: "NY1745-PB1", birthYear: 1745, deathYear: 1815, branchColor: "#38bdf8" }
-      ],
-      relationships: [
-        { id: "r_ny1800_1", person1Id: "p_HIER_BURGER_1724", person2Id: "p_HELENA_SLUITER", type: "spouse" },
-        { id: "r_ny1800_2", person1Id: "p_HIER_BURGER_1724", person2Id: "p_JOHN_BURGER_ULSTER", type: "parent" },
-        { id: "r_ny1800_3", person1Id: "p_HELENA_SLUITER", person2Id: "p_JOHN_BURGER_ULSTER", type: "parent" }
-      ],
-      events: [
-        // William Burger (1768-1835): Ulster County -> Kortright, Delaware County, NY (1800-1810)
-        { id: "e_ny1800_1", personId: "p_WM_BURGER_1800", type: "Birth", year: 1768, place: "Rochester / Wawarsing, Ulster County, New York", lat: 41.7850, lng: -74.2950, transport: "Auto", notes: "Born in the Ulster County Dutch Reformed settlement region of the Hudson/Rondout Valley." },
-        { id: "e_ny1800_2", personId: "p_WM_BURGER_1800", type: "Residence / Census", year: 1800, place: "Kortright, Delaware County, New York", lat: 42.3409, lng: -74.8002, transport: "Ox Wagon / Handcart", notes: "1800 US Federal Census: Head of household in Kortright, Delaware County, NY — primary father/uncle candidate for Frederick Burger (b. 1800, KVG8-YVV), who later named a son William Burger (b. 1832)!" },
-        { id: "e_ny1800_3", personId: "p_WM_BURGER_1800", type: "Residence / Census", year: 1810, place: "Kortright / Harpersfield, Delaware County, New York", lat: 42.3820, lng: -74.7250, transport: "Auto", notes: "1810 US Federal Census: Residing in Kortright/Delaware County, NY with young male children matching Frederick Burger's age." },
-
-        // Ezekiel Burger (1765-1830): Ulster/Dutchess -> Stamford / Kortright / Middletown, Delaware County, NY
-        { id: "e_ny1800_4", personId: "p_EZEK_BURGER_1800", type: "Birth", year: 1765, place: "Marbletown / Kingston, Ulster County, New York", lat: 41.8820, lng: -74.1150, transport: "Auto", notes: "Born in Ulster County, New York prior to post-Revolutionary migration into the Catskills." },
-        { id: "e_ny1800_5", personId: "p_EZEK_BURGER_1800", type: "Residence / Census", year: 1800, place: "Stamford / Kortright, Delaware County, New York", lat: 42.4065, lng: -74.6160, transport: "Stagecoach / Turnpike", notes: "1800 US Federal Census: Enumerated on the Stamford–Kortright border in Delaware County, NY along the Catskill Turnpike (~10 miles from Kortright center)." },
-        { id: "e_ny1800_6", personId: "p_EZEK_BURGER_1800", type: "Residence / Census", year: 1810, place: "Middletown / Stamford, Delaware County, New York", lat: 42.2610, lng: -74.6520, transport: "Auto", notes: "1810 US Federal Census: Delaware County, New York." },
-
-        // Hieronymus Burger (1724-1802): Rochester / Shandaken / Middletown Corridor
-        { id: "e_ny1800_7", personId: "p_HIER_BURGER_1724", type: "Birth", year: 1724, place: "Rochester / Accord, Ulster County, New York", lat: 41.8015, lng: -74.2250, transport: "Auto", notes: "1724 Baptism in Ulster County Dutch Reformed Church; patriarch of the Ulster/Delaware Burger cluster." },
-        { id: "e_ny1800_8", personId: "p_HIER_BURGER_1724", type: "Marriage", year: 1751, place: "Marbletown / Rochester, Ulster County, New York", lat: 41.8445, lng: -74.1620, transport: "Auto", notes: "Married Helena Sluiter in Ulster County, New York; baptized multiple Burger sons who migrated up the Esopus Creek valley into Delaware County." },
-        { id: "e_ny1800_9", personId: "p_HIER_BURGER_1724", type: "Residence / Census", year: 1790, place: "Rochester / Shandaken, Ulster County, New York", lat: 42.0210, lng: -74.3150, transport: "Auto", notes: "1790 US Federal Census: Ulster County, New York." },
-        { id: "e_ny1800_10", personId: "p_HIER_BURGER_1724", type: "Residence / Census", year: 1800, place: "Middletown / Shandaken Border, Delaware–Ulster County, New York", lat: 42.1480, lng: -74.5420, transport: "Auto", notes: "1800 Census period on the Ulster–Delaware County mountain pass linking Kingston/Rochester to Middletown, Stamford & Kortright." },
-
-        // Helena Sluiter (1728-1798)
-        { id: "e_ny1800_11", personId: "p_HELENA_SLUITER", type: "Birth", year: 1728, place: "Kingston / Hurley, Ulster County, New York", lat: 41.9150, lng: -74.0600, transport: "Auto", notes: "Born in Ulster County, New York." },
-        { id: "e_ny1800_12", personId: "p_HELENA_SLUITER", type: "Marriage", year: 1751, place: "Marbletown / Rochester, Ulster County, New York", lat: 41.8445, lng: -74.1620, transport: "Auto", notes: "Married Hieronymus Burger in Ulster County, NY." },
-        { id: "e_ny1800_13", personId: "p_HELENA_SLUITER", type: "Residence / Census", year: 1790, place: "Rochester, Ulster County, New York", lat: 41.8015, lng: -74.2250, transport: "Auto", notes: "1790 US Federal Census household in Ulster County, NY." },
-
-        // John Burger (1760-1828): Ulster County -> Middletown, Delaware County corridor
-        { id: "e_ny1800_14", personId: "p_JOHN_BURGER_ULSTER", type: "Birth", year: 1760, place: "Rochester / Marbletown, Ulster County, New York", lat: 41.8250, lng: -74.1950, transport: "Auto", notes: "Son of the Ulster County Burger family." },
-        { id: "e_ny1800_15", personId: "p_JOHN_BURGER_ULSTER", type: "Residence / Census", year: 1790, place: "Marbletown / Hurley, Ulster County, New York", lat: 41.9020, lng: -74.1320, transport: "Auto", notes: "1790 US Federal Census: Ulster County, New York." },
-        { id: "e_ny1800_16", personId: "p_JOHN_BURGER_ULSTER", type: "Residence / Census", year: 1800, place: "Middletown, Delaware County, New York", lat: 42.1520, lng: -74.6310, transport: "Ox Wagon / Handcart", notes: "1800 US Federal Census: Settled in Middletown, Delaware County, NY (~15 miles south of Kortright)." },
-        { id: "e_ny1800_17", personId: "p_JOHN_BURGER_ULSTER", type: "Residence / Census", year: 1810, place: "Middletown / Kingston Corridor, Ulster–Delaware, New York", lat: 42.0650, lng: -74.4100, transport: "Auto", notes: "1810 US Federal Census in the Ulster/Delaware border region." },
-
-        // Peter Burger (1745-1815): Rhinebeck / Clinton, Dutchess County, NY
-        { id: "e_ny1800_18", personId: "p_PETER_BURGER_DUTCH", type: "Birth", year: 1745, place: "Rhinebeck, Dutchess County, New York", lat: 41.9268, lng: -73.9126, transport: "Auto", notes: "Palatine/Dutch Burger branch in Rhinebeck, Dutchess County, NY (directly across the Hudson River from Ulster County & the Catskill Turnpike)." },
-        { id: "e_ny1800_19", personId: "p_PETER_BURGER_DUTCH", type: "Residence / Census", year: 1790, place: "Rhinebeck / Clinton, Dutchess County, New York", lat: 41.8620, lng: -73.8890, transport: "Auto", notes: "1790 US Federal Census: Dutchess County, New York." },
-        { id: "e_ny1800_20", personId: "p_PETER_BURGER_DUTCH", type: "Residence / Census", year: 1800, place: "Rhinebeck / Red Hook, Dutchess County, New York", lat: 41.9950, lng: -73.8760, transport: "Auto", notes: "1800 US Federal Census: Dutchess County Burger household near the Hudson ferry feeding the Catskill Turnpike west to Kortright, Delaware County." },
-        { id: "e_ny1800_21", personId: "p_PETER_BURGER_DUTCH", type: "Residence / Census", year: 1810, place: "Rhinebeck, Dutchess County, New York", lat: 41.9268, lng: -73.9126, transport: "Auto", notes: "1810 US Federal Census: Dutchess County, New York." }
-      ]
-    };
-
-    // =========================================================================
-    // 1D. HISTORICAL MIGRATION CORRIDORS OVERLAY DATA
+    // 1C. HISTORICAL MIGRATION CORRIDORS OVERLAY DATA
     // =========================================================================
     const HISTORICAL_CORRIDORS = [
       {
         id: "corridor_catskill",
-        name: "Catskill Turnpike & Chenango Feeder Route (1802+)",
+        name: "Catskill Turnpike & Susquehanna Route (1802+)",
         color: "#f59e0b",
         dashArray: "6, 4",
         years: "1802–1855",
         mode: "🐎 Corduroy Turnpike & Canal Feeder",
         dist: "~145 miles",
         timeStr: "~5–7 days by wagon",
-        context: "Connected the Hudson Valley and Kortright (Delaware County) west across the Susquehanna River to Chenango County (Norwich/Oxford) and north to the Erie Canal at Utica.",
+        context: "Connected the Hudson Valley and Kortright (Delaware County) west across the Susquehanna River and north to the Erie Canal at Utica.",
         coords: [
           [42.2173, -73.8646], // Catskill on Hudson
           [42.3409, -74.8002], // Kortright, Delaware Co., NY
+          [42.2781, -74.9160], // Delhi / Delaware Co., NY
           [42.3251, -75.3127], // Unadilla / Susquehanna Crossing
-          [42.4459, -75.6099], // Chenango County (Oxford / Norwich), NY
-          [42.8000, -75.5600], // Hamilton / Chenango Canal
+          [42.8000, -75.5600], // Canal Feeder Route
           [43.1009, -75.2327]  // Utica (Erie Canal junction)
         ]
       },
@@ -806,7 +749,7 @@ Rules:
         mode: "🛶 Canal Packet Boat",
         dist: "363 miles",
         timeStr: "~5 days (4 mph packet)",
-        context: "Opened in 1825, the Erie Canal cut travel time from eastern/central New York (Albany, Utica, Chenango feeder) to Lake Erie at Buffalo from 3 weeks down to 5 days.",
+        context: "Opened in 1825, the Erie Canal cut travel time from eastern/central New York (Albany, Utica) to Lake Erie at Buffalo from 3 weeks down to 5 days.",
         coords: [
           [42.6526, -73.7562], // Albany
           [42.8142, -73.9396], // Schenectady
@@ -827,7 +770,7 @@ Rules:
         mode: "⛴️ Great Lakes Sidewheel Steamer",
         dist: "~620 miles",
         timeStr: "~4–6 days via Mackinac",
-        context: "New York families migrating to Wisconsin Territory in the 1840s–1850s boarded sidewheel steamers at Buffalo, sailing across Lake Erie, Lake Huron, and through the Straits of Mackinac to Milwaukee (Waukesha) or Green Bay/Fox River into Winnebago, Green Lake, and Marquette Counties.",
+        context: "New York families migrating to Wisconsin in the 1840s–1850s boarded sidewheel steamers at Buffalo, sailing across Lake Erie, Lake Huron, and through the Straits of Mackinac to Milwaukee (Waukesha) or Green Bay/Fox River into Menasha (Winnebago), Dartford (Green Lake), and Montello/Shields (Marquette County).",
         coords: [
           [42.8864, -78.8784], // Buffalo, NY
           [41.6292, -81.3615], // Fairport / Kirtland, OH
@@ -837,10 +780,11 @@ Rules:
           [45.0600, -83.1000], // Northern Lake Huron
           [45.8170, -84.7278], // Straits of Mackinac
           [44.5133, -88.0133], // Green Bay, WI
-          [44.0247, -88.5426], // Oshkosh / Winnebago County, WI
-          [43.8441, -88.9598], // Green Lake / Marquette County, WI
+          [44.2022, -88.4465], // Menasha, Winnebago County, WI
+          [43.8441, -88.9598], // Dartford, Green Lake County, WI
+          [43.7919, -89.3293], // Montello, Marquette County, WI
           [43.0389, -87.9065], // Milwaukee Harbor, WI
-          [43.0117, -88.2315]  // Waukesha County, WI
+          [43.0117, -88.2315]  // Waukesha, Waukesha County, WI
         ]
       },
       {
@@ -869,39 +813,49 @@ Rules:
     ];
 
     async function loadBurgerFamilyPreset() {
-      const shouldMerge = confirm(
-        "Load Frederick Burger (KVG8-YVV) & Mabel (GSRP-RWT) Family Group (9 ancestors, 41 Kortright/Chenango NY → Wisconsin waypoints & 1878 obituary notes):\n\n• Click OK to MERGE into your current tree\n• Click Cancel to REPLACE your current tree with the Burger Family Group"
-      );
       const clone = JSON.parse(JSON.stringify(BURGER_FAMILY_DATA));
-      await applyImportedDataset(clone, shouldMerge ? "merge" : "replace");
-      document.getElementById("yearSlider").value = 1850;
-      onSliderInput(1850);
+      expandedPersonIds.clear();
+      hiddenPersonIds.clear();
+      await applyImportedDataset(clone, "replace");
+      document.getElementById("yearSlider").value = 1854;
+      onSliderInput(1854);
       fitAllMarkers();
     }
 
     function preloadBurgerFamilyIntoModal() {
       document.getElementById("pasteJsonTextarea").value = JSON.stringify(BURGER_FAMILY_DATA, null, 2);
       const statusEl = document.getElementById("pasteModalFileStatus");
-      if (statusEl) statusEl.textContent = "🌲 Loaded Burger Family (KVG8-YVV) preset — Click Import / Merge below!";
-    }
-
-    async function merge1800NyCandidates() {
-      const pasteModal = document.getElementById("pasteJsonModal");
-      if (pasteModal && !pasteModal.classList.contains("hidden")) {
-        pasteModal.classList.add("hidden");
-      }
-      const clone = JSON.parse(JSON.stringify(NY_1800_CANDIDATES_DATA));
-      await applyImportedDataset(clone, "merge");
-      const slider = document.getElementById("yearSlider");
-      slider.value = 1800;
-      onSliderInput(1800);
-      map.flyTo([42.20, -74.50], 8);
+      if (statusEl) statusEl.textContent = "🌲 Loaded verbatim Burger Family (KVG8-YVV) PDF dataset — Click Import / Merge below!";
     }
 
     // =========================================================================
     // 2. STATE & INITIALIZATION
     // =========================================================================
-    let appData = JSON.parse(localStorage.getItem("ancestor_geotracker_data")) || JSON.parse(JSON.stringify(DEFAULT_DATA));
+    function loadInitialAppData() {
+      try {
+        const raw = localStorage.getItem("ancestor_geotracker_data");
+        if (!raw) return JSON.parse(JSON.stringify(BURGER_FAMILY_DATA));
+        const parsed = JSON.parse(raw);
+        // Automatically replace stale cached Chenango County or unverified candidate data with clean verbatim PDF dataset
+        const hasStaleBurgerCache =
+          Array.isArray(parsed.events) &&
+          parsed.events.some(
+            (e) =>
+              (e.place && e.place.includes("Chenango County")) ||
+              (e.id && String(e.id).startsWith("e_ny1800_"))
+          );
+        if (hasStaleBurgerCache) {
+          const clean = JSON.parse(JSON.stringify(BURGER_FAMILY_DATA));
+          localStorage.setItem("ancestor_geotracker_data", JSON.stringify(clean));
+          return clean;
+        }
+        return parsed;
+      } catch {
+        return JSON.parse(JSON.stringify(BURGER_FAMILY_DATA));
+      }
+    }
+
+    let appData = loadInitialAppData();
     let map, baseTileLayer, histTrailsLayer, markersLayer, pathsLayer, proximityLayer, relLayer;
     let playInterval = null;
     let expandedPersonIds = new Set();
@@ -909,21 +863,25 @@ Rules:
     let gedcomGeocodeAbort = false;
 
     const BASEMAPS = {
-      voyager: {
-        url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      osm: {
+        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      },
+      usgs: {
+        url: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+        attribution: "Tiles courtesy of the U.S. Geological Survey (USGS National Map)",
+        maxZoom: 16
       },
       topo: {
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-        attribution: "Tiles &copy; Esri"
+        url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+        maxZoom: 17
       },
-      satellite: {
+      sat: {
         url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attribution: "Tiles &copy; Esri"
-      },
-      dark: {
-        url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        attribution: "Tiles &copy; Esri",
+        maxZoom: 18
       }
     };
 
@@ -935,11 +893,11 @@ Rules:
     });
 
     function initMap() {
-      map = L.map("map", { center: [41.5, -88.0], zoom: 4 });
+      map = L.map("map", { center: [42.8, -82.0], zoom: 5 });
 
-      baseTileLayer = L.tileLayer(BASEMAPS.voyager.url, {
-        attribution: BASEMAPS.voyager.attribution,
-        maxZoom: 18
+      baseTileLayer = L.tileLayer(BASEMAPS.osm.url, {
+        attribution: BASEMAPS.osm.attribution,
+        maxZoom: BASEMAPS.osm.maxZoom
       }).addTo(map);
 
       histTrailsLayer = L.layerGroup().addTo(map);
@@ -956,11 +914,11 @@ Rules:
     }
 
     function changeBasemap(styleKey) {
-      const cfg = BASEMAPS[styleKey] || BASEMAPS.voyager;
+      const cfg = BASEMAPS[styleKey] || BASEMAPS.osm;
       if (baseTileLayer) map.removeLayer(baseTileLayer);
       baseTileLayer = L.tileLayer(cfg.url, {
         attribution: cfg.attribution,
-        maxZoom: 18
+        maxZoom: cfg.maxZoom || 18
       }).addTo(map);
     }
 
@@ -1191,61 +1149,50 @@ Rules:
       updateMapForYear();
     }
 
-    function getPersonPositionAtYear(person, pEvents, currentYear, showGhost) {
+    function getPersonPositionAtYear(person, pEvents, currentYear, trackingMode = "hold") {
       if (pEvents.length === 0) return null;
       if (currentYear < person.birthYear || currentYear > person.deathYear) return null;
 
-      let lat = pEvents[0].lat;
-      let lng = pEvents[0].lng;
-      let currentPlace = pEvents[0].place;
-      let statusLabel = `${pEvents[0].type} (${pEvents[0].year})`;
-      let isInterpolated = false;
-
-      for (let i = 0; i < pEvents.length; i++) {
-        if (pEvents[i].year === currentYear) {
-          lat = pEvents[i].lat;
-          lng = pEvents[i].lng;
-          currentPlace = pEvents[i].place;
-          statusLabel = `${pEvents[i].type} in ${currentYear}`;
-          isInterpolated = false;
-          break;
-        } else if (
-          i < pEvents.length - 1 &&
-          currentYear > pEvents[i].year &&
-          currentYear < pEvents[i + 1].year
-        ) {
-          if (showGhost) {
-            const ratio = (currentYear - pEvents[i].year) / (pEvents[i + 1].year - pEvents[i].year);
-            const segCoords = getSegmentCoordinates(pEvents[i], pEvents[i + 1]);
-            const interp = interpolateAlongPolyline(segCoords, ratio);
-            lat = interp[0];
-            lng = interp[1];
-            currentPlace = `In transit / Between ${pEvents[i].place.split(",")[0]} & ${pEvents[i + 1].place.split(",")[0]}`;
-            statusLabel = `Estimated between ${pEvents[i].year} & ${pEvents[i + 1].year}`;
-            isInterpolated = true;
-          } else {
-            lat = pEvents[i].lat;
-            lng = pEvents[i].lng;
-            currentPlace = pEvents[i].place;
-            statusLabel = `Last recorded at ${pEvents[i].place} (${pEvents[i].year})`;
-          }
-          break;
-        } else if (currentYear > pEvents[pEvents.length - 1].year) {
-          const lastEv = pEvents[pEvents.length - 1];
-          lat = lastEv.lat;
-          lng = lastEv.lng;
-          currentPlace = lastEv.place;
-          statusLabel = `Residing at ${lastEv.place} (since ${lastEv.year})`;
-        }
+      // 1. Check if currentYear matches an exact documented waypoint year
+      const exactEvents = pEvents.filter((e) => Number(e.year) === currentYear);
+      if (exactEvents.length > 0) {
+        const ev = exactEvents[exactEvents.length - 1];
+        const badge = `✅ Exact Documented Record (${currentYear})`;
+        return {
+          person,
+          lat: ev.lat,
+          lng: ev.lng,
+          place: ev.place,
+          eventType: ev.type,
+          eventYear: ev.year,
+          isExactRecord: true,
+          recordBadge: badge,
+          statusLabel: `${badge} — ${ev.type} at ${ev.place}`,
+          age: currentYear - person.birthYear
+        };
       }
 
+      // 2. If in "exact" mode ("Show Only on Exact Documented Years"), do not plot in non-record years
+      if (trackingMode === "exact") {
+        return null;
+      }
+
+      // 3. In "hold" mode ("Lock to Last Documented Place"), never interpolate — hold at last documented waypoint
+      const priorEvents = pEvents.filter((e) => Number(e.year) <= currentYear);
+      if (priorEvents.length === 0) return null;
+
+      const lastEvent = priorEvents[priorEvents.length - 1];
+      const badge = `📌 Last Documented: ${lastEvent.place} (${lastEvent.year} ${lastEvent.type})`;
       return {
         person,
-        lat,
-        lng,
-        place: currentPlace,
-        statusLabel,
-        isInterpolated,
+        lat: lastEvent.lat,
+        lng: lastEvent.lng,
+        place: lastEvent.place,
+        eventType: lastEvent.type,
+        eventYear: lastEvent.year,
+        isExactRecord: false,
+        recordBadge: badge,
+        statusLabel: badge,
         age: currentYear - person.birthYear
       };
     }
@@ -1377,7 +1324,7 @@ Rules:
 
     function updateMapForYear() {
       const currentYear = parseInt(document.getElementById("yearSlider").value, 10);
-      const showGhost = document.getElementById("toggleGhost").checked;
+      const trackingMode = document.getElementById("trackingModeSelect")?.value || "hold";
       const showRel = document.getElementById("toggleRelLines").checked;
       const showFuture = document.getElementById("toggleFuturePaths").checked;
       const proxThreshold = parseFloat(document.getElementById("proximityRadius").value) || 35;
@@ -1423,7 +1370,7 @@ Rules:
           }
         }
 
-        const pos = getPersonPositionAtYear(person, pEvents, currentYear, showGhost);
+        const pos = getPersonPositionAtYear(person, pEvents, currentYear, trackingMode);
         if (pos) activePositions.push(pos);
       });
 
@@ -1486,7 +1433,8 @@ Rules:
           html: `<div class="ancestor-pin ${isNear ? "proximity-pulse" : ""}" style="
             width: 22px; height: 22px;
             background: ${pos.person.branchColor};
-            opacity: ${pos.isInterpolated ? "0.7" : "1"};
+            border: 2px solid ${pos.isExactRecord ? "#34d399" : "#ffffff"};
+            opacity: ${pos.isExactRecord ? "1" : "0.88"};
             display: flex; align-items: center; justify-content: center;
             font-size: 10px; font-weight: bold; color: #0f172a;
           ">${escapeHtml(pos.person.name.charAt(0))}</div>`,
@@ -1498,13 +1446,18 @@ Rules:
         const fsBadge = pos.person.fsId
           ? `<a href="https://www.familysearch.org/tree/person/details/${encodeURIComponent(pos.person.fsId)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:600;">🔗 ${escapeHtml(pos.person.fsId)}</a>`
           : "N/A";
+        const popupBadgeStyle = pos.isExactRecord
+          ? "background:#dcfce7; color:#166534; border:1px solid #86efac;"
+          : "background:#fef3c7; color:#92400e; border:1px solid #fde68a;";
         marker.bindPopup(`
-          <div style="font-size:12px; min-width:200px;">
+          <div style="font-size:12px; min-width:210px;">
             <div style="font-weight:bold; font-size:14px; color:#0f172a;">${escapeHtml(pos.person.name)}</div>
             <div style="color:#475569; font-size:11px;">FS ID: ${fsBadge} • Age in ${currentYear}: <strong>${pos.age}</strong></div>
             <hr style="margin:6px 0; border-color:#e2e8f0;"/>
             <div><strong>Location:</strong> ${escapeHtml(pos.place)}</div>
-            <div style="color:#64748b; font-size:11px; margin-top:2px;">${escapeHtml(pos.statusLabel)}</div>
+            <div style="margin-top:5px; padding:3px 6px; border-radius:4px; font-size:10px; font-weight:600; ${popupBadgeStyle}">
+              ${escapeHtml(pos.recordBadge)}
+            </div>
           </div>
         `);
       });
@@ -1608,8 +1561,15 @@ Rules:
                     ${fsLinkHtml}
                   </div>
                   <div class="text-[11px] text-slate-400 truncate">
-                    ${active ? `📍 ${escapeHtml(active.place)} (Age ${active.age})` : `Not alive in ${currentYear}`} • ${pEvents.length} waypoints
+                    ${active ? `📍 ${escapeHtml(active.place)} (Age ${active.age})` : `No active record in ${currentYear}`} • ${pEvents.length} waypoints
                   </div>
+                  ${active ? `
+                    <div class="mt-1">
+                      <span class="inline-block px-1.5 py-0.5 rounded border text-[9px] font-semibold ${active.isExactRecord ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-amber-500/15 text-amber-300 border-amber-500/30"}">
+                        ${escapeHtml(active.recordBadge)}
+                      </span>
+                    </div>
+                  ` : ""}
                 </div>
               </div>
               <div class="flex items-center gap-0.5 shrink-0">
@@ -1684,23 +1644,35 @@ Rules:
       document.getElementById("ePersonId").value = personId;
     }
 
-    // Scan entire timeline range for proximity convergences
+    // Scan entire timeline range for proximity convergences ONLY at documented waypoint coordinates (never interpolated)
     function scanAllTimelineConvergences() {
       const minYear = parseInt(document.getElementById("yearSlider").min, 10) || 1750;
       const maxYear = parseInt(document.getElementById("yearSlider").max, 10) || 1950;
       const proxThreshold = parseFloat(document.getElementById("proximityRadius").value) || 35;
-      const showGhost = document.getElementById("toggleGhost").checked;
+      const trackingMode = document.getElementById("trackingModeSelect")?.value || "hold";
+
+      // Evaluate across all documented waypoint years (or year-by-year in hold mode, strictly using documented waypoint coordinates)
+      const documentedYears = [...new Set(
+        appData.events
+          .filter((e) => !hiddenPersonIds.has(e.personId) && !isNaN(e.year))
+          .map((e) => Number(e.year))
+          .filter((y) => y >= minYear && y <= maxYear)
+      )].sort((a, b) => a - b);
+
+      const yearsToScan = trackingMode === "exact"
+        ? documentedYears
+        : Array.from({ length: maxYear - minYear + 1 }, (_, idx) => minYear + idx);
 
       const pairWindows = new Map();
 
-      for (let yr = minYear; yr <= maxYear; yr++) {
+      for (const yr of yearsToScan) {
         const active = [];
         appData.persons.forEach((person) => {
           if (hiddenPersonIds.has(person.id)) return;
           const pEvents = appData.events
             .filter((e) => e.personId === person.id && !isNaN(e.lat) && !isNaN(e.lng))
             .sort((a, b) => a.year - b.year);
-          const pos = getPersonPositionAtYear(person, pEvents, yr, showGhost);
+          const pos = getPersonPositionAtYear(person, pEvents, yr, trackingMode);
           if (pos) active.push(pos);
         });
 
@@ -2017,16 +1989,9 @@ Rules:
       "new york": { lat: 42.6526, lng: -73.7562 },
       "new york city": { lat: 40.7128, lng: -74.0060 },
       "kortright, delaware, new york": { lat: 42.3409, lng: -74.8002 },
-      "stamford, delaware, new york": { lat: 42.4065, lng: -74.6160 },
-      "middletown, delaware, new york": { lat: 42.1520, lng: -74.6310 },
-      "delaware county": { lat: 42.3409, lng: -74.8002 },
-      "ulster county": { lat: 41.8820, lng: -74.1150 },
-      "rochester, ulster, new york": { lat: 41.8015, lng: -74.2250 },
-      "dutchess county": { lat: 41.9268, lng: -73.9126 },
-      "rhinebeck, dutchess, new york": { lat: 41.9268, lng: -73.9126 },
-      "chenango, new york": { lat: 42.4459, lng: -75.6099 },
-      "chenango county": { lat: 42.4459, lng: -75.6099 },
-      "massachusetts": { lat: 42.3601, lng: -71.0589 },
+      "delaware, new york": { lat: 42.2781, lng: -74.9160 },
+      "delaware county": { lat: 42.2781, lng: -74.9160 },
+      "massachusetts": { lat: 42.3601, lng: -72.0000 },
       "boston": { lat: 42.3601, lng: -71.0589 },
       "connecticut": { lat: 41.7658, lng: -72.6734 },
       "vermont": { lat: 44.2601, lng: -72.5754 },
@@ -2061,19 +2026,24 @@ Rules:
       "wisconsin": { lat: 43.0731, lng: -89.4012 },
       "marquette, wisconsin": { lat: 43.7950, lng: -89.1350 },
       "marquette county": { lat: 43.7950, lng: -89.1350 },
+      "montello, marquette, wisconsin": { lat: 43.7919, lng: -89.3293 },
+      "shields, marquette, wisconsin": { lat: 43.8547, lng: -89.2618 },
+      "mecan, marquette, wisconsin": { lat: 43.8358, lng: -89.2104 },
+      "dartford, green lake, wisconsin": { lat: 43.8441, lng: -88.9598 },
       "green lake, wisconsin": { lat: 43.8441, lng: -88.9598 },
       "green lake county": { lat: 43.8441, lng: -88.9598 },
       "brooklyn, green lake, wisconsin": { lat: 43.8441, lng: -88.9598 },
       "berlin, green lake, wisconsin": { lat: 43.9680, lng: -88.9434 },
       "princeton, green lake, wisconsin": { lat: 43.8516, lng: -89.1215 },
       "waukesha, wisconsin": { lat: 43.0117, lng: -88.2315 },
+      "waukesha, waukesha, wisconsin": { lat: 43.0117, lng: -88.2315 },
       "waukesha county": { lat: 43.0117, lng: -88.2315 },
+      "menasha, winnebago, wisconsin": { lat: 44.2022, lng: -88.4465 },
       "winnebago, wisconsin": { lat: 44.0247, lng: -88.5426 },
       "winnebago county": { lat: 44.0247, lng: -88.5426 },
       "oshkosh, winnebago, wisconsin": { lat: 44.0247, lng: -88.5426 },
       "ripon, fond du lac, wisconsin": { lat: 43.8422, lng: -88.8359 },
       "fond du lac, wisconsin": { lat: 43.7730, lng: -88.4471 },
-      "montello, marquette, wisconsin": { lat: 43.7928, lng: -89.3293 },
       "milwaukee": { lat: 43.0389, lng: -87.9065 },
       "minnesota": { lat: 44.9537, lng: -93.0900 },
       "utah": { lat: 40.7608, lng: -111.8910 },
@@ -3304,6 +3274,38 @@ Rules:
       if (next > maxVal) next = maxVal;
       slider.value = next;
       onSliderInput(next);
+    }
+
+    function stepRecordYear(delta) {
+      const slider = document.getElementById("yearSlider");
+      const curYear = parseInt(slider.value, 10);
+      const uniqueYears = [...new Set(
+        appData.events
+          .filter((e) => !hiddenPersonIds.has(e.personId) && !isNaN(e.year))
+          .map((e) => Number(e.year))
+      )].sort((a, b) => a - b);
+
+      if (uniqueYears.length === 0) return;
+
+      let targetYear = curYear;
+      if (delta > 0) {
+        const next = uniqueYears.find((y) => y > curYear);
+        targetYear = next !== undefined ? next : uniqueYears[0];
+      } else {
+        const prevCandidates = uniqueYears.filter((y) => y < curYear);
+        targetYear = prevCandidates.length > 0 ? prevCandidates[prevCandidates.length - 1] : uniqueYears[uniqueYears.length - 1];
+      }
+
+      if (targetYear < parseInt(slider.min, 10)) {
+        document.getElementById("sliderMinInput").value = targetYear - 5;
+        updateSliderBounds();
+      }
+      if (targetYear > parseInt(slider.max, 10)) {
+        document.getElementById("sliderMaxInput").value = targetYear + 5;
+        updateSliderBounds();
+      }
+      slider.value = targetYear;
+      onSliderInput(targetYear);
     }
 
     function togglePlay() {
